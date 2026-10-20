@@ -1,0 +1,404 @@
+<title>What If I'd Invested</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="See what a past investment in the S&P 500 or Treasury bills would be worth today.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,500;6..72,600&family=Public+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one narrow column, like a statement — inputs on top, the two outcomes side by side, then the growth chart and the yearly ledger. */
+:root {
+  --paper: #f6f8f6;
+  --card: #ffffff;
+  --ink: #17231d;
+  --muted: #56645c;
+  --rule: #d6ded9;
+  --stock: #1c6b4a;
+  --bill: #3d5f8f;
+  --bond: #7a4f9a;
+  --gold: #a8740f;
+  --focus: #b0731c;
+  --field: #ffffff;
+  --display: "Newsreader", Georgia, "Times New Roman", serif;
+  --body: "Public Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #111815; --card: #18211d; --ink: #e4ebe7; --muted: #9aaba2; --rule: #2c3832;
+    --stock: #5fc596; --bill: #8fb0e0; --bond: #c7a2e6; --gold: #e8bb55; --focus: #e2a54e; --field: #1d2722; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #111815; --card: #18211d; --ink: #e4ebe7; --muted: #9aaba2; --rule: #2c3832;
+  --stock: #5fc596; --bill: #8fb0e0; --bond: #c7a2e6; --gold: #e8bb55; --focus: #e2a54e; --field: #1d2722; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--paper); color: var(--ink);
+  font: 400 1rem/1.55 var(--body);
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 2rem 3rem;
+}
+main { max-width: 46rem; margin: 0 auto; display: grid; gap: 2rem; }
+h1 { font: 600 clamp(2rem, 6vw, 2.75rem)/1.1 var(--display); margin: 0; text-wrap: balance; letter-spacing: -0.01em; }
+h2 { font: 600 1.35rem/1.2 var(--display); margin: 0 0 .75rem; text-wrap: balance; }
+.lede { color: var(--muted); margin: .5rem 0 0; max-width: 38rem; }
+.eyebrow { font: 500 .75rem/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 0 0 .6rem; }
+
+form { display: grid; grid-template-columns: 1.4fr 1fr 1fr; gap: 1rem; align-items: end; }
+@media (max-width: 34rem) { form { grid-template-columns: 1fr 1fr; } .amount-field { grid-column: 1 / -1; } }
+label { display: block; font-weight: 600; font-size: .9rem; margin-bottom: .35rem; }
+.money { position: relative; }
+.money span { position: absolute; left: .8rem; top: 50%; transform: translateY(-50%); color: var(--muted); font-family: var(--mono); pointer-events: none; }
+input, select {
+  width: 100%; font: 500 1.05rem var(--mono); color: var(--ink); background: var(--field);
+  border: 1px solid var(--rule); border-radius: 6px; padding: .7rem .8rem; min-height: 2.9rem;
+}
+.money input { padding-left: 1.7rem; }
+input:focus-visible, select:focus-visible, summary:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+.error { color: #b3261e; font-weight: 600; margin: .5rem 0 0; }
+:root[data-theme="dark"] .error { color: #ff8a80; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .error { color: #ff8a80; } }
+
+.summary { font: 500 1.2rem/1.5 var(--display); margin: 0; max-width: 40rem; }
+.outcomes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; margin-top: 1.25rem; }
+@media (max-width: 34rem) { .outcomes { grid-template-columns: 1fr; } }
+.outcome { background: var(--card); border: 1px solid var(--rule); border-radius: 8px; padding: 1.1rem 1.2rem; display: grid; gap: .25rem; min-width: 0; }
+.outcome h3 { margin: 0; font: 600 .95rem var(--body); display: flex; align-items: center; gap: .5rem; }
+.swatch { width: .8rem; height: .8rem; border-radius: 2px; flex: none; }
+.outcome .value { font: 500 clamp(1.6rem, 5vw, 2.1rem)/1.15 var(--mono); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.outcome dl { display: grid; grid-template-columns: auto 1fr; gap: .15rem 1rem; margin: .5rem 0 0; font-size: .9rem; }
+.outcome dt { color: var(--muted); }
+.outcome dd { margin: 0; text-align: right; font-family: var(--mono); font-variant-numeric: tabular-nums; }
+.outcome .na { color: var(--muted); margin: .25rem 0 0; }
+
+.chart-wrap { background: var(--card); border: 1px solid var(--rule); border-radius: 8px; padding: 1rem; }
+.legend { display: flex; flex-wrap: wrap; gap: .4rem 1.2rem; font-size: .85rem; color: var(--muted); margin-bottom: .5rem; }
+.legend span { display: inline-flex; align-items: center; gap: .4rem; }
+svg { display: block; width: 100%; height: auto; overflow: visible; }
+svg text { fill: var(--muted); font: 400 11px var(--mono); }
+svg .grid { stroke: var(--rule); stroke-width: 1; }
+
+details { background: var(--card); border: 1px solid var(--rule); border-radius: 8px; }
+summary { cursor: pointer; padding: .9rem 1.1rem; font-weight: 600; }
+.table-wrap { overflow-x: auto; padding: 0 1.1rem 1rem; max-height: 28rem; overflow-y: auto; }
+table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; font-size: .9rem; }
+caption { text-align: left; color: var(--muted); font-size: .85rem; padding-bottom: .5rem; }
+th, td { padding: .4rem .6rem; text-align: right; border-bottom: 1px solid var(--rule); white-space: nowrap; }
+th:first-child, td:first-child { text-align: left; }
+thead th { position: sticky; top: 0; background: var(--card); font-size: .8rem; color: var(--muted); font-weight: 600; }
+td { font-family: var(--mono); }
+
+.notes { color: var(--muted); font-size: .9rem; border-top: 1px solid var(--rule); padding-top: 1.25rem; }
+.notes h2 { font-size: 1.1rem; color: var(--ink); }
+.notes ul { padding-left: 1.2rem; margin: 0; display: grid; gap: .4rem; }
+.notes a { color: inherit; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+fieldset.freq { grid-column: 1 / -1; border: 0; padding: 0; margin: 0; min-width: 0; }
+fieldset.freq legend { font-weight: 600; font-size: .9rem; margin-bottom: .35rem; padding: 0; }
+.seg { display: inline-flex; flex-wrap: wrap; border: 1px solid var(--rule); border-radius: 6px; background: var(--field); overflow: hidden; }
+.seg input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.seg label { margin: 0; padding: .6rem 1rem; font-weight: 500; cursor: pointer; border-left: 1px solid var(--rule); min-height: 2.75rem; display: flex; align-items: center; }
+.seg label:first-of-type { border-left: 0; }
+.seg input:checked + label { background: var(--stock); color: var(--card); }
+.seg input:focus-visible + label { outline: 3px solid var(--focus); outline-offset: -3px; }
+.legend .contrib-key { width: 1.1rem; height: 0; border-top: 2px dashed var(--muted); }
+</style>
+
+<main>
+  <header>
+    <p class="eyebrow">Historical returns calculator</p>
+    <h1>What if I'd invested?</h1>
+    <p class="lede">Pick an amount, how often you'd invest it, and a starting month to see what it would be worth today in four low-cost funds: an S&amp;P 500 index fund, a Treasury bond fund, a gold fund, and a money market fund.</p>
+  </header>
+
+  <section aria-labelledby="inputs-h">
+    <h2 id="inputs-h" class="sr-only">Your investment</h2>
+    <form id="calc" novalidate>
+      <fieldset class="freq">
+        <legend>How often you invest</legend>
+        <div class="seg">
+          <input type="radio" name="freq" id="freq-once" value="once" checked><label for="freq-once">One time</label>
+          <input type="radio" name="freq" id="freq-monthly" value="monthly"><label for="freq-monthly">Every month</label>
+          <input type="radio" name="freq" id="freq-yearly" value="yearly"><label for="freq-yearly">Every year</label>
+        </div>
+      </fieldset>
+      <div class="amount-field">
+        <label for="amount" id="amount-label">Amount invested</label>
+        <div class="money"><span aria-hidden="true">$</span><input id="amount" name="amount" inputmode="decimal" autocomplete="off" value="10,000"></div>
+      </div>
+      <div>
+        <label for="month">Start month</label>
+        <select id="month" name="month"></select>
+      </div>
+      <div>
+        <label for="year">Start year</label>
+        <select id="year" name="year"></select>
+      </div>
+    </form>
+    <p id="error" class="error" role="alert" hidden></p>
+  </section>
+
+  <section aria-labelledby="results-h">
+    <h2 id="results-h">Results</h2>
+    <p id="summary" class="summary" aria-live="polite"></p>
+    <div class="outcomes">
+      <article class="outcome" id="out-sp" aria-labelledby="sp-h">
+        <h3 id="sp-h"><span class="swatch" style="background:var(--stock)" aria-hidden="true"></span>S&amp;P 500 index fund</h3>
+        <div class="value" data-value></div>
+        <dl data-stats></dl>
+        <p class="na" data-na hidden></p>
+      </article>
+      <article class="outcome" id="out-bd" aria-labelledby="bd-h">
+        <h3 id="bd-h"><span class="swatch" style="background:var(--bond)" aria-hidden="true"></span>Treasury bond fund</h3>
+        <div class="value" data-value></div>
+        <dl data-stats></dl>
+        <p class="na" data-na hidden></p>
+      </article>
+      <article class="outcome" id="out-gd" aria-labelledby="gd-h">
+        <h3 id="gd-h"><span class="swatch" style="background:var(--gold)" aria-hidden="true"></span>Gold fund</h3>
+        <div class="value" data-value></div>
+        <dl data-stats></dl>
+        <p class="na" data-na hidden></p>
+      </article>
+      <article class="outcome" id="out-tb" aria-labelledby="tb-h">
+        <h3 id="tb-h"><span class="swatch" style="background:var(--bill)" aria-hidden="true"></span>Money market fund</h3>
+        <div class="value" data-value></div>
+        <dl data-stats></dl>
+        <p class="na" data-na hidden></p>
+      </article>
+    </div>
+  </section>
+
+  <section class="chart-wrap" aria-labelledby="chart-h">
+    <h2 id="chart-h">Growth over time</h2>
+    <div class="legend" aria-hidden="true">
+      <span><span class="swatch" style="background:var(--stock)"></span>S&amp;P 500</span>
+      <span><span class="swatch" style="background:var(--bond)"></span>Treasury bonds</span>
+      <span><span class="swatch" style="background:var(--gold)"></span>Gold</span>
+      <span><span class="swatch" style="background:var(--bill)"></span>Money market</span>
+      <span id="contrib-legend" hidden><span class="contrib-key"></span>Total you put in</span>
+    </div>
+    <div id="chart" aria-hidden="true"></div>
+    <p class="sr-only">The chart shows the same information as the year-by-year table below.</p>
+  </section>
+
+  <details id="ledger">
+    <summary>Year-by-year values</summary>
+    <div class="table-wrap">
+      <table>
+        <caption id="table-caption">Total put in and account value at the start of each January</caption>
+        <thead><tr><th scope="col">Year</th><th scope="col">You put in</th><th scope="col">S&amp;P 500</th><th scope="col">Bonds</th><th scope="col">Gold</th><th scope="col">Money market</th></tr></thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
+  </details>
+
+  <section class="notes" aria-labelledby="notes-h">
+    <h2 id="notes-h">About the numbers</h2>
+    <ul>
+      <li id="asof-note"></li>
+      <li>S&amp;P 500 figures show a low-cost index fund charging 0.04% a year, the fee on Vanguard's 500 Index Admiral Shares (VFIAX), with dividends reinvested. That fee is applied to the whole history, including years before index funds existed.</li>
+      <li>Through <span id="splice"></span>, S&amp;P 500 returns come from Robert Shiller's monthly dataset going back to 1871. After that, they come from the SPY ETF's dividend-adjusted prices, with SPY's own fee added back.</li>
+      <li>Treasury bill figures show a money market fund charging 0.11% a year, the fee on Vanguard's Federal Money Market Fund (VMFXX). Returns come from Aswath Damodaran's annual 3-month T-bill returns from 1928 on, spread evenly across each year's months, and 2026 uses an estimate of 3.9% a year.</li>
+      <li>Treasury bond figures show a bond fund charging 0.03% a year, the fee on Vanguard's Intermediate-Term Treasury ETF (VGIT), holding 10-year Treasury bonds with interest reinvested. Returns come from Aswath Damodaran's annual 10-year Treasury bond returns from 1928 through 2025, spread evenly across each year's months. 2026 is calculated from month-end 10-year yields. VGIT itself holds somewhat shorter bonds, so its ups and downs are a bit smaller.</li>
+      <li>Gold figures show a gold fund charging 0.10% a year, the fee on SPDR Gold MiniShares (GLDM), using monthly gold prices. They start in January 1975, the first month Americans could legally own gold again after a ban that began in 1933. Before 1971 the government also fixed gold's price.</li>
+      <li>For monthly or yearly investing, each deposit buys in on the start month and every month or year after it, through <span id="last-deposit"></span>. "Per year" is the money-weighted annual return, which accounts for when each deposit went in.</li>
+      <li>Results include the fund fees above but ignore taxes and inflation.</li>
+      <li>This is a historical illustration, not investment advice. Past returns don't predict future ones.</li>
+    </ul>
+  </section>
+</main>
+
+<script>
+const DATA = __DATA__;
+const MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+
+function toIndex(ym) { const [y, m] = ym.split("-").map(Number); return y * 12 + (m - 1); }
+function label(ym) { const [y, m] = ym.split("-").map(Number); return MONTHS[m - 1] + " " + y; }
+const asOfIdx = toIndex(DATA.lastMonth);
+const asOfDate = new Date(DATA.asOfDate + "T12:00:00");
+const asOfLabel = asOfDate.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+const finalOffset = (asOfDate - new Date(Math.floor(asOfIdx / 12), asOfIdx % 12, 15)) / (30.44 * 864e5);
+const series = {
+  sp: { ...DATA.sp, s: toIndex(DATA.sp.start) },
+  tb: { ...DATA.tb, s: toIndex(DATA.tb.start) },
+  bd: { ...DATA.bd, s: toIndex(DATA.bd.start) },
+  gd: { ...DATA.gd, s: toIndex(DATA.gd.start) },
+};
+const ASSETS = [
+  { key: "sp", name: "an S&P 500 index fund", short: "stocks", color: "var(--stock)" },
+  { key: "bd", name: "a Treasury bond fund", short: "bonds", color: "var(--bond)" },
+  { key: "gd", name: "a gold fund", short: "gold", color: "var(--gold)" },
+  { key: "tb", name: "a money market fund", short: "money market", color: "var(--bill)" },
+];
+function levelAt(key, idx) { const se = series[key]; const i = idx - se.s; return i >= 0 && i < se.levels.length ? se.levels[i] : null; }
+
+const usd = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
+const pct = v => (v * 100).toFixed(1) + "%";
+
+const $ = id => document.getElementById(id);
+const monthSel = $("month"), yearSel = $("year"), amountIn = $("amount");
+MONTHS.forEach((m, i) => monthSel.add(new Option(m, i)));
+const firstYear = Number(DATA.sp.start.slice(0, 4)), lastYear = Number(DATA.lastMonth.slice(0, 4));
+for (let y = lastYear; y >= firstYear; y--) yearSel.add(new Option(y, y));
+monthSel.value = "0"; yearSel.value = "1990";
+$("asof-note").textContent = "Values are as of the market close on " + asOfLabel + ". Each investment is assumed to buy in at that month's average price.";
+$("splice").textContent = label(DATA.spliceMonth);
+$("last-deposit").textContent = label(DATA.lastMonth);
+
+function parseAmount(s) { const n = Number(String(s).replace(/[$,\s]/g, "")); return isFinite(n) ? n : NaN; }
+
+const DEFAULTS = { once: 10000, monthly: 500, yearly: 6000 };
+let amountEdited = false;
+function freq() { return document.querySelector('input[name="freq"]:checked').value; }
+function isDeposit(f, k) { return f === "once" ? k === 0 : f === "monthly" ? true : k % 12 === 0; }
+
+// Simulate deposits month by month. Returns value and amount put in at each month, plus final results.
+function simulate(key, amount, startIdx, f) {
+  if (levelAt(key, startIdx) == null) return null;
+  const N = asOfIdx - startIdx, vals = [], put = [], times = [];
+  let units = 0, total = 0;
+  for (let k = 0; k <= N; k++) {
+    const lv = levelAt(key, startIdx + k);
+    if (isDeposit(f, k)) { units += amount / lv; total += amount; times.push((N - k + finalOffset) / 12); }
+    vals.push(units * lv); put.push(total);
+  }
+  const value = units * series[key].final;
+  return { vals, put, value, total, deposits: times.length, rate: annualRate(amount, times, value) };
+}
+
+// Money-weighted annual return: the rate r where every deposit, grown at r, adds up to the final value.
+function annualRate(amount, times, value) {
+  if (Math.max(...times) < 1) return null;
+  const f = r => times.reduce((s, t) => s + amount * Math.pow(1 + r, t), 0) - value;
+  let lo = -0.99, hi = 1;
+  for (let i = 0; i < 200; i++) { const mid = (lo + hi) / 2; if (f(mid) > 0) hi = mid; else lo = mid; }
+  return (lo + hi) / 2;
+}
+
+function fill(el, key, res) {
+  const v = el.querySelector("[data-value]"), dl = el.querySelector("[data-stats]"), na = el.querySelector("[data-na]");
+  if (!res) {
+    v.textContent = "No data"; dl.innerHTML = ""; na.hidden = false;
+    na.textContent = "Data starts in " + label(series[key].start) + ".";
+    return;
+  }
+  na.hidden = true;
+  v.textContent = usd.format(res.value);
+  const gain = res.value - res.total;
+  const rows = [
+    ["You put in", usd.format(res.total)],
+    ["Gain", (gain >= 0 ? "+" : "−") + usd.format(Math.abs(gain))],
+    ["Per year", res.rate == null ? "Under a year" : pct(res.rate)],
+  ];
+  dl.innerHTML = rows.map(([k, val]) => `<dt>${k}</dt><dd>${val}</dd>`).join("");
+}
+
+function niceStep(max, count) {
+  const raw = max / count, mag = Math.pow(10, Math.floor(Math.log10(raw)));
+  const f = raw / mag; return (f <= 1 ? 1 : f <= 2 ? 2 : f <= 2.5 ? 2.5 : f <= 5 ? 5 : 10) * mag;
+}
+function compact(v) {
+  if (v >= 1e9) return "$" + (v / 1e9).toFixed(v % 1e9 ? 1 : 0) + "B";
+  if (v >= 1e6) return "$" + (v / 1e6).toFixed(v % 1e6 ? 1 : 0) + "M";
+  if (v >= 1e3) return "$" + (v / 1e3).toFixed(v % 1e3 ? 1 : 0) + "K";
+  return "$" + Math.round(v);
+}
+
+function drawChart(results, startIdx, f) {
+  const W = 640, H = 280, L = 58, R = 12, T = 12, B = 28;
+  const N = asOfIdx - startIdx, n = N + finalOffset;
+  const step = Math.max(1, Math.floor(N / 400));
+  const sample = (arr, fin) => { const pts = []; for (let i = 0; i <= N; i += step) pts.push([i, arr[i]]); pts.push([n, fin]); return pts; };
+  const any = results.sp;
+  const lines = ASSETS.map(a => results[a.key] ? { key: a.key, color: a.color, pts: sample(results[a.key].vals, results[a.key].value) } : null);
+  const putPts = f === "once" ? null : sample(any.put, any.total);
+  let maxV = any.total;
+  lines.forEach(l => l && l.pts.forEach(p => { if (p[1] > maxV) maxV = p[1]; }));
+  const stepY = niceStep(maxV, 4), topY = Math.ceil(maxV / stepY) * stepY;
+  const x = i => L + (n === 0 ? 0 : (i / n) * (W - L - R));
+  const y = v => T + (1 - v / topY) * (H - T - B);
+  const path = pts => pts.map((p, i) => (i ? "L" : "M") + x(p[0]).toFixed(1) + " " + y(p[1]).toFixed(1)).join("");
+  let svg = `<svg viewBox="0 0 ${W} ${H}" role="presentation">`;
+  for (let v = 0; v <= topY + 1e-9; v += stepY) {
+    svg += `<line class="grid" x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}"/>`;
+    svg += `<text x="${L - 8}" y="${y(v) + 4}" text-anchor="end">${compact(v)}</text>`;
+  }
+  const startYear = Math.floor(startIdx / 12), endYear = Math.floor(asOfIdx / 12);
+  const span = Math.max(1, endYear - startYear);
+  const yStep = [1, 2, 5, 10, 20, 25, 50].find(s => span / s <= 6) || 50;
+  for (let yr = Math.ceil((startYear + (startIdx % 12 ? 1 : 0)) / yStep) * yStep; yr <= endYear; yr += yStep) {
+    const xi = x(yr * 12 - startIdx);
+    svg += `<line class="grid" x1="${xi}" x2="${xi}" y1="${H - B}" y2="${H - B + 4}"/>`;
+    svg += `<text x="${xi}" y="${H - 8}" text-anchor="middle">${yr}</text>`;
+  }
+  svg += `<line x1="${L}" x2="${W - R}" y1="${y(0)}" y2="${y(0)}" stroke="var(--muted)" stroke-width="1"/>`;
+  if (putPts) svg += `<path d="${path(putPts)}" fill="none" stroke="var(--muted)" stroke-width="1.75" stroke-dasharray="5 4"/>`;
+  lines.forEach(l => {
+    if (!l) return;
+    svg += `<path d="${path(l.pts)}" fill="none" stroke="${l.color}" stroke-width="2.25" stroke-linejoin="round"/>`;
+    const last = l.pts[l.pts.length - 1];
+    svg += `<circle cx="${x(last[0])}" cy="${y(last[1])}" r="4" fill="${l.color}"/>`;
+  });
+  svg += "</svg>";
+  $("chart").innerHTML = svg;
+  $("contrib-legend").hidden = !putPts;
+}
+
+function drawTable(results, startIdx) {
+  const any = results.sp, N = asOfIdx - startIdx;
+  const cell = (key, k) => results[key] ? usd.format(k === "final" ? results[key].value : results[key].vals[k]) : "—";
+  const putCell = k => usd.format(k === "final" ? any.total : any.put[k]);
+  const row = (name, k) => `<tr><th scope="row">${name}</th><td>${putCell(k)}</td>${ASSETS.map(a => `<td>${cell(a.key, k)}</td>`).join("")}</tr>`;
+  const rows = [row(label(MONTHS_YM(startIdx)) + " (start)", 0)];
+  const firstJan = Math.ceil(startIdx / 12) * 12;
+  for (let i = firstJan === startIdx ? firstJan + 12 : firstJan; i <= asOfIdx; i += 12) rows.push(row(String(i / 12), i - startIdx));
+  rows.push(row(asOfLabel, "final"));
+  $("rows").innerHTML = rows.join("");
+}
+function MONTHS_YM(idx) { return Math.floor(idx / 12) + "-" + String(idx % 12 + 1).padStart(2, "0"); }
+
+function update() {
+  const f = freq();
+  const amount = parseAmount(amountIn.value);
+  const startIdx = Number(yearSel.value) * 12 + Number(monthSel.value);
+  const err = $("error");
+  if (!(amount > 0)) { err.textContent = "Enter an amount greater than zero, like " + DEFAULTS[f].toLocaleString("en-US") + "."; err.hidden = false; return; }
+  if (startIdx > asOfIdx) { err.textContent = "Pick a month no later than " + label(DATA.lastMonth) + ", the latest full month in the data."; err.hidden = false; return; }
+  err.hidden = true;
+  const results = {};
+  ASSETS.forEach(a => { results[a.key] = simulate(a.key, amount, startIdx, f); fill($("out-" + a.key), a.key, results[a.key]); });
+  const sp = results.sp;
+  const when = label(MONTHS_YM(startIdx));
+  let s;
+  if (f === "once") s = `${usd.format(amount)} invested in ${when}`;
+  else {
+    const per = f === "monthly" ? "a month" : "a year";
+    const n = sp.deposits;
+    s = `${usd.format(amount)} ${per} from ${when} through ${label(MONTHS_YM(f === "monthly" ? asOfIdx : startIdx + (n - 1) * 12))}, ${n.toLocaleString("en-US")} deposit${n === 1 ? "" : "s"} totaling ${usd.format(sp.total)},`;
+  }
+  const have = ASSETS.filter(a => results[a.key]);
+  const parts = have.map(a => `${usd.format(results[a.key].value)} in ${a.name}`);
+  s += ` would be worth about ${parts.length > 1 ? parts.slice(0, -1).join(", ") + ", or " + parts[parts.length - 1] : parts[0]} as of ${asOfLabel}.`;
+  const rated = have.filter(a => results[a.key].rate != null);
+  if (rated.length) s += " Per year, that's " + rated.map(a => `${pct(results[a.key].rate)} for ${a.short}`).join(", ") + ".";
+  const missing = ASSETS.filter(a => !results[a.key]);
+  if (missing.length) s += " " + missing.map(a => a.short.charAt(0).toUpperCase() + a.short.slice(1) + " data starts in " + label(series[a.key].start) + ".").join(" ");
+  $("summary").textContent = s;
+  $("amount-label").textContent = f === "once" ? "Amount invested" : f === "monthly" ? "Amount each month" : "Amount each year";
+  drawChart(results, startIdx, f);
+  drawTable(results, startIdx);
+}
+
+amountIn.addEventListener("blur", () => { const n = parseAmount(amountIn.value); if (n > 0) amountIn.value = n.toLocaleString("en-US", { maximumFractionDigits: 2 }); });
+amountIn.addEventListener("input", () => { amountEdited = true; update(); });
+monthSel.addEventListener("change", update);
+yearSel.addEventListener("change", update);
+document.querySelectorAll('input[name="freq"]').forEach(r => r.addEventListener("change", () => {
+  if (!amountEdited) amountIn.value = DEFAULTS[freq()].toLocaleString("en-US");
+  update();
+}));
+$("calc").addEventListener("submit", e => { e.preventDefault(); update(); });
+update();
+</script>
