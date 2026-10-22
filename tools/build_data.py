@@ -13,12 +13,13 @@ T-bills: Damodaran annual 3-month T-bill returns 1928-2025, spread evenly
 import csv, json, sys, datetime
 from collections import defaultdict
 
-sp_path, tb_path, spy_path, out_path, bond_path, yields_path, gold_path, gold_recent_path, cpi_recent_path = sys.argv[1:10]
+sp_path, tb_path, spy_path, out_path, bond_path, yields_path, gold_path, gold_recent_path, cpi_recent_path, btc_monthly_path, btc_last_path = sys.argv[1:12]
 FUND_FEE = 0.0004
 SPY_FEE = 0.000945
 MM_FEE = 0.0011  # Vanguard Federal Money Market (VMFXX)
 BOND_FEE = 0.0003  # Vanguard Intermediate-Term Treasury ETF (VGIT)
 GOLD_FEE = 0.0010  # SPDR Gold MiniShares (GLDM)
+BTC_FEE = 0.0015  # Grayscale Bitcoin Mini Trust (BTC)
 fee_m = (1 - FUND_FEE) ** (1 / 12)
 
 # Shiller rows up to and including the last month with a reported dividend
@@ -143,6 +144,23 @@ for line in open(cpi_recent_path):
         cpi[k] = float(v)
 cpi_levels = [cpi[m] for m in months]
 
+# ---- Bitcoin ----
+btc = {}
+for line in open(btc_monthly_path):
+    if line.strip():
+        k, v = line.strip().split(",")
+        btc[k] = float(v)
+bl_date, bl_price = open(btc_last_path).read().strip().split(",")
+bc_start = "2011-01"
+btc_fee_m = (1 - BTC_FEE) ** (1 / 12)
+bc_levels, cl = [], 1.0
+cm = [m for m in months if m >= bc_start]
+for i, m in enumerate(cm):
+    if i > 0:
+        cl *= btc[m] / btc[cm[i - 1]] * btc_fee_m
+    bc_levels.append(cl)
+bc_final = cl * float(bl_price) / btc[prev] * (1 - BTC_FEE) ** frac_years
+
 sig = lambda x: float(f"{x:.7g}")
 out = {
     "lastMonth": months[-1],
@@ -152,6 +170,7 @@ out = {
     "sp": {"start": months[0], "levels": [sig(v) for v in levels], "final": sig(sp_final)},
     "tb": {"start": tb_start, "levels": [sig(v) for v in tb_levels], "final": sig(tb_final)},
     "bd": {"start": bd_start, "levels": [sig(v) for v in bd_levels], "final": sig(bd_final)},
+    "bc": {"start": bc_start, "levels": [sig(v) for v in bc_levels], "final": sig(bc_final)},
     "cpi": {"start": months[0], "levels": [sig(v) for v in cpi_levels]},
     "gd": {"start": gd_start, "levels": [sig(v) for v in gd_levels], "final": sig(gd_final)},
 }
@@ -178,3 +197,4 @@ yg=(d_last - datetime.date(1975,1,15)).days/365.25
 print("Gold CAGR since 1975: %.2f%%" % (100*((gd_final/gd_levels[0])**(1/yg)-1)))
 i26=months.index("2026-01")-months.index(bd_start)
 print("Bonds 2026 YTD: %.2f%%" % (100*(bd_final/bd_levels[i26]-1)))
+print("BTC $10k Jan 2015 ->", round(10000 * bc_final / bc_levels[months.index("2015-01") - months.index(bc_start)]))
