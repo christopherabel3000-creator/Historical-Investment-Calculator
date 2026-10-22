@@ -13,7 +13,7 @@ T-bills: Damodaran annual 3-month T-bill returns 1928-2025, spread evenly
 import csv, json, sys, datetime
 from collections import defaultdict
 
-sp_path, tb_path, spy_path, out_path, bond_path, yields_path, gold_path, gold_recent_path = sys.argv[1:9]
+sp_path, tb_path, spy_path, out_path, bond_path, yields_path, gold_path, gold_recent_path, cpi_recent_path = sys.argv[1:10]
 FUND_FEE = 0.0004
 SPY_FEE = 0.000945
 MM_FEE = 0.0011  # Vanguard Federal Money Market (VMFXX)
@@ -128,6 +128,21 @@ for i, m in enumerate(gm):
     gd_levels.append(gl)
 gd_final = gl * recent[last_date] / recent[prev] * (1 - GOLD_FEE) ** frac_years
 
+# ---- CPI (inflation) ----
+# Shiller CPI (CPI-U, not seasonally adjusted) through 2023-07, then BLS CPI-U.
+# 2025-10 was never published (government shutdown) and is interpolated.
+# Aug-Sep 2026 extend July using FMP's seasonally adjusted month-to-month changes.
+cpi = {}
+for r in csv.DictReader(open(sp_path)):
+    v = float(r["Consumer Price Index"])
+    if v > 0 and r["Date"][:7] <= "2023-07":
+        cpi[r["Date"][:7]] = v
+for line in open(cpi_recent_path):
+    if line.strip():
+        k, v = line.strip().split(",")
+        cpi[k] = float(v)
+cpi_levels = [cpi[m] for m in months]
+
 sig = lambda x: float(f"{x:.7g}")
 out = {
     "lastMonth": months[-1],
@@ -137,6 +152,7 @@ out = {
     "sp": {"start": months[0], "levels": [sig(v) for v in levels], "final": sig(sp_final)},
     "tb": {"start": tb_start, "levels": [sig(v) for v in tb_levels], "final": sig(tb_final)},
     "bd": {"start": bd_start, "levels": [sig(v) for v in bd_levels], "final": sig(bd_final)},
+    "cpi": {"start": months[0], "levels": [sig(v) for v in cpi_levels]},
     "gd": {"start": gd_start, "levels": [sig(v) for v in gd_levels], "final": sig(gd_final)},
 }
 json.dump(out, open(out_path, "w"), separators=(",", ":"))

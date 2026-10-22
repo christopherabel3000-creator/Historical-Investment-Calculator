@@ -15,6 +15,7 @@
   --bill: #3d5f8f;
   --bond: #7a4f9a;
   --gold: #a8740f;
+  --mix: #c2410c;
   --focus: #b0731c;
   --field: #ffffff;
   --display: "Newsreader", Georgia, "Times New Roman", serif;
@@ -24,12 +25,12 @@
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --paper: #111815; --card: #18211d; --ink: #e4ebe7; --muted: #9aaba2; --rule: #2c3832;
-    --stock: #5fc596; --bill: #8fb0e0; --bond: #c7a2e6; --gold: #e8bb55; --focus: #e2a54e; --field: #1d2722; color-scheme: dark;
+    --stock: #5fc596; --bill: #8fb0e0; --bond: #c7a2e6; --gold: #e8bb55; --mix: #ff8a5c; --focus: #e2a54e; --field: #1d2722; color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
   --paper: #111815; --card: #18211d; --ink: #e4ebe7; --muted: #9aaba2; --rule: #2c3832;
-  --stock: #5fc596; --bill: #8fb0e0; --bond: #c7a2e6; --gold: #e8bb55; --focus: #e2a54e; --field: #1d2722; color-scheme: dark;
+  --stock: #5fc596; --bill: #8fb0e0; --bond: #c7a2e6; --gold: #e8bb55; --mix: #ff8a5c; --focus: #e2a54e; --field: #1d2722; color-scheme: dark;
 }
 * { box-sizing: border-box; }
 body {
@@ -103,13 +104,34 @@ fieldset.freq legend { font-weight: 600; font-size: .9rem; margin-bottom: .35rem
 .seg input:checked + label { background: var(--stock); color: var(--card); }
 .seg input:focus-visible + label { outline: 3px solid var(--focus); outline-offset: -3px; }
 .legend .contrib-key { width: 1.1rem; height: 0; border-top: 2px dashed var(--muted); }
+
+input[type="checkbox"] { width: 1.25rem; height: 1.25rem; min-height: 0; padding: 0; margin: 0; accent-color: var(--stock); flex: none; }
+.check { grid-column: 1 / -1; display: flex; align-items: center; gap: .6rem; }
+.check label { margin: 0; font-weight: 500; }
+fieldset.mix { grid-column: 1 / -1; border: 1px solid var(--rule); border-radius: 8px; padding: 1rem; margin: .25rem 0 0; min-width: 0; display: grid; gap: .9rem; }
+fieldset.mix legend { font-weight: 600; font-size: .9rem; padding: 0 .35rem; }
+.mix-hint { margin: 0; color: var(--muted); font-size: .9rem; }
+.mix-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .75rem; }
+@media (max-width: 34rem) { .mix-grid { grid-template-columns: 1fr 1fr; } }
+.pct { position: relative; }
+.pct span { position: absolute; right: .8rem; top: 50%; transform: translateY(-50%); color: var(--muted); font-family: var(--mono); pointer-events: none; }
+.pct input { padding-right: 2rem; }
+.mix-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .6rem 1.2rem; }
+.mix-total { font-family: var(--mono); font-variant-numeric: tabular-nums; margin: 0; }
+.mix-total.bad { color: #b3261e; font-weight: 600; }
+:root[data-theme="dark"] .mix-total.bad { color: #ff8a80; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .mix-total.bad { color: #ff8a80; } }
+.mix-foot .check { grid-column: auto; }
+.outcome.mix-card { border-color: var(--mix); }
+.outcome .desc { margin: 0; color: var(--muted); font-size: .85rem; }
+.mode-note { color: var(--muted); font-size: .9rem; margin: .5rem 0 0; }
 </style>
 
 <main>
   <header>
     <p class="eyebrow">Historical returns calculator</p>
     <h1>What if I'd invested?</h1>
-    <p class="lede">Pick an amount, how often you'd invest it, and a starting month to see what it would be worth today in four low-cost funds: an S&amp;P 500 index fund, a Treasury bond fund, a gold fund, and a money market fund.</p>
+    <p class="lede">Pick an amount, how often you'd invest it, and when, to see what it would be worth in four low-cost funds: an S&amp;P 500 index fund, a Treasury bond fund, a gold fund, and a money market fund. You can also build your own mix of the four and adjust for inflation.</p>
   </header>
 
   <section aria-labelledby="inputs-h">
@@ -135,6 +157,35 @@ fieldset.freq legend { font-weight: 600; font-size: .9rem; margin-bottom: .35rem
         <label for="year">Start year</label>
         <select id="year" name="year"></select>
       </div>
+      <div class="amount-field">
+        <label for="end-year">End</label>
+        <select id="end-year" name="end-year"></select>
+      </div>
+      <div id="end-month-field" hidden>
+        <label for="end-month">End month</label>
+        <select id="end-month" name="end-month"></select>
+      </div>
+      <div class="check">
+        <input type="checkbox" id="real" name="real">
+        <label for="real">Show values in today's dollars (adjusted for inflation)</label>
+      </div>
+      <fieldset class="mix">
+        <legend>Your mix</legend>
+        <p class="mix-hint" id="mix-hint">Split each investment across the four funds. Percentages must add up to 100.</p>
+        <div class="mix-grid">
+          <div><label for="mix-sp">S&amp;P 500</label><div class="pct"><input type="number" id="mix-sp" min="0" max="100" step="5" value="60" aria-describedby="mix-hint"><span aria-hidden="true">%</span></div></div>
+          <div><label for="mix-bd">Treasury bonds</label><div class="pct"><input type="number" id="mix-bd" min="0" max="100" step="5" value="40" aria-describedby="mix-hint"><span aria-hidden="true">%</span></div></div>
+          <div><label for="mix-gd">Gold</label><div class="pct"><input type="number" id="mix-gd" min="0" max="100" step="5" value="0" aria-describedby="mix-hint"><span aria-hidden="true">%</span></div></div>
+          <div><label for="mix-tb">Money market</label><div class="pct"><input type="number" id="mix-tb" min="0" max="100" step="5" value="0" aria-describedby="mix-hint"><span aria-hidden="true">%</span></div></div>
+        </div>
+        <div class="mix-foot">
+          <p class="mix-total" id="mix-total" aria-live="polite"></p>
+          <div class="check">
+            <input type="checkbox" id="rebalance" name="rebalance" checked>
+            <label for="rebalance">Rebalance once a year</label>
+          </div>
+        </div>
+      </fieldset>
     </form>
     <p id="error" class="error" role="alert" hidden></p>
   </section>
@@ -142,7 +193,15 @@ fieldset.freq legend { font-weight: 600; font-size: .9rem; margin-bottom: .35rem
   <section aria-labelledby="results-h">
     <h2 id="results-h">Results</h2>
     <p id="summary" class="summary" aria-live="polite"></p>
+    <p id="mode-note" class="mode-note" hidden></p>
     <div class="outcomes">
+      <article class="outcome mix-card" id="out-mix" aria-labelledby="mix-h">
+        <h3 id="mix-h"><span class="swatch" style="background:var(--mix)" aria-hidden="true"></span>Your mix</h3>
+        <p class="desc" id="mix-desc"></p>
+        <div class="value" data-value></div>
+        <dl data-stats></dl>
+        <p class="na" data-na hidden></p>
+      </article>
       <article class="outcome" id="out-sp" aria-labelledby="sp-h">
         <h3 id="sp-h"><span class="swatch" style="background:var(--stock)" aria-hidden="true"></span>S&amp;P 500 index fund</h3>
         <div class="value" data-value></div>
@@ -173,6 +232,7 @@ fieldset.freq legend { font-weight: 600; font-size: .9rem; margin-bottom: .35rem
   <section class="chart-wrap" aria-labelledby="chart-h">
     <h2 id="chart-h">Growth over time</h2>
     <div class="legend" aria-hidden="true">
+      <span id="mix-legend"><span class="swatch" style="background:var(--mix)"></span>Your mix</span>
       <span><span class="swatch" style="background:var(--stock)"></span>S&amp;P 500</span>
       <span><span class="swatch" style="background:var(--bond)"></span>Treasury bonds</span>
       <span><span class="swatch" style="background:var(--gold)"></span>Gold</span>
@@ -188,7 +248,7 @@ fieldset.freq legend { font-weight: 600; font-size: .9rem; margin-bottom: .35rem
     <div class="table-wrap">
       <table>
         <caption id="table-caption">Total put in and account value at the start of each January</caption>
-        <thead><tr><th scope="col">Year</th><th scope="col">You put in</th><th scope="col">S&amp;P 500</th><th scope="col">Bonds</th><th scope="col">Gold</th><th scope="col">Money market</th></tr></thead>
+        <thead><tr id="thead-row"></tr></thead>
         <tbody id="rows"></tbody>
       </table>
     </div>
@@ -203,8 +263,9 @@ fieldset.freq legend { font-weight: 600; font-size: .9rem; margin-bottom: .35rem
       <li>Treasury bill figures show a money market fund charging 0.11% a year, the fee on Vanguard's Federal Money Market Fund (VMFXX). Returns come from Aswath Damodaran's annual 3-month T-bill returns from 1928 on, spread evenly across each year's months, and 2026 uses an estimate of 3.9% a year.</li>
       <li>Treasury bond figures show a bond fund charging 0.03% a year, the fee on Vanguard's Intermediate-Term Treasury ETF (VGIT), holding 10-year Treasury bonds with interest reinvested. Returns come from Aswath Damodaran's annual 10-year Treasury bond returns from 1928 through 2025, spread evenly across each year's months. 2026 is calculated from month-end 10-year yields. VGIT itself holds somewhat shorter bonds, so its ups and downs are a bit smaller.</li>
       <li>Gold figures show a gold fund charging 0.10% a year, the fee on SPDR Gold MiniShares (GLDM), using monthly gold prices. They start in January 1975, the first month Americans could legally own gold again after a ban that began in 1933. Before 1971 the government also fixed gold's price.</li>
-      <li>For monthly or yearly investing, each deposit buys in on the start month and every month or year after it, through <span id="last-deposit"></span>. "Per year" is the money-weighted annual return, which accounts for when each deposit went in.</li>
-      <li>Results include the fund fees above but ignore taxes and inflation.</li>
+      <li>Your mix splits every deposit across the funds by your percentages. With yearly rebalancing, the whole account is reset to those percentages every 12 months from your start month. Without it, each fund grows on its own and the mix drifts.</li>
+      <li>Inflation adjustment uses the Consumer Price Index (CPI-U) from Robert Shiller's dataset and the Bureau of Labor Statistics. "Today's dollars" means <span id="cpi-month"></span> dollars, the latest inflation data. The October 2025 figure was never published because of the government shutdown, so it is estimated, and the last two months are based on early estimates. "Per year" figures in today's dollars are returns after inflation.</li>
+      <li>For monthly or yearly investing, each deposit buys in on the start month and every month or year after it, through the end date. "Per year" is the money-weighted annual return, which accounts for when each deposit went in. Results include the fund fees above but ignore taxes.</li>
       <li>This is a historical illustration, not investment advice. Past returns don't predict future ones.</li>
     </ul>
   </section>
@@ -216,6 +277,7 @@ const MONTHS = ["January","February","March","April","May","June","July","August
 
 function toIndex(ym) { const [y, m] = ym.split("-").map(Number); return y * 12 + (m - 1); }
 function label(ym) { const [y, m] = ym.split("-").map(Number); return MONTHS[m - 1] + " " + y; }
+function MONTHS_YM(idx) { return Math.floor(idx / 12) + "-" + String(idx % 12 + 1).padStart(2, "0"); }
 const asOfIdx = toIndex(DATA.lastMonth);
 const asOfDate = new Date(DATA.asOfDate + "T12:00:00");
 const asOfLabel = asOfDate.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
@@ -227,70 +289,96 @@ const series = {
   gd: { ...DATA.gd, s: toIndex(DATA.gd.start) },
 };
 const ASSETS = [
-  { key: "sp", name: "an S&P 500 index fund", short: "stocks", color: "var(--stock)" },
-  { key: "bd", name: "a Treasury bond fund", short: "bonds", color: "var(--bond)" },
-  { key: "gd", name: "a gold fund", short: "gold", color: "var(--gold)" },
-  { key: "tb", name: "a money market fund", short: "money market", color: "var(--bill)" },
+  { key: "sp", name: "an S&P 500 index fund", short: "stocks", col: "S&amp;P 500", color: "var(--stock)" },
+  { key: "bd", name: "a Treasury bond fund", short: "bonds", col: "Bonds", color: "var(--bond)" },
+  { key: "gd", name: "a gold fund", short: "gold", col: "Gold", color: "var(--gold)" },
+  { key: "tb", name: "a money market fund", short: "money market", col: "Money market", color: "var(--bill)" },
 ];
+const cpiStart = toIndex(DATA.cpi.start);
+const cpiLevels = DATA.cpi.levels;
+const cpiNow = cpiLevels[cpiLevels.length - 1];
+const cpiNowLabel = label(MONTHS_YM(cpiStart + cpiLevels.length - 1));
+function cpiAt(idx) { return cpiLevels[Math.min(idx - cpiStart, cpiLevels.length - 1)]; }
 function levelAt(key, idx) { const se = series[key]; const i = idx - se.s; return i >= 0 && i < se.levels.length ? se.levels[i] : null; }
 
 const usd = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
 const pct = v => (v * 100).toFixed(1) + "%";
-
 const $ = id => document.getElementById(id);
-const monthSel = $("month"), yearSel = $("year"), amountIn = $("amount");
-MONTHS.forEach((m, i) => monthSel.add(new Option(m, i)));
-const firstYear = Number(DATA.sp.start.slice(0, 4)), lastYear = Number(DATA.lastMonth.slice(0, 4));
-for (let y = lastYear; y >= firstYear; y--) yearSel.add(new Option(y, y));
-monthSel.value = "0"; yearSel.value = "1990";
-$("asof-note").textContent = "Values are as of the market close on " + asOfLabel + ". Each investment is assumed to buy in at that month's average price.";
-$("splice").textContent = label(DATA.spliceMonth);
-$("last-deposit").textContent = label(DATA.lastMonth);
 
-function parseAmount(s) { const n = Number(String(s).replace(/[$,\s]/g, "")); return isFinite(n) ? n : NaN; }
+const monthSel = $("month"), yearSel = $("year"), endYearSel = $("end-year"), endMonthSel = $("end-month"), amountIn = $("amount");
+MONTHS.forEach((m, i) => { monthSel.add(new Option(m, i)); endMonthSel.add(new Option(m, i)); });
+const firstYear = Number(DATA.sp.start.slice(0, 4)), lastYear = Number(DATA.lastMonth.slice(0, 4));
+endYearSel.add(new Option("Today (" + asOfLabel + ")", "now"));
+for (let y = lastYear; y >= firstYear; y--) { yearSel.add(new Option(y, y)); endYearSel.add(new Option(y, y)); }
+monthSel.value = "0"; yearSel.value = "1990"; endYearSel.value = "now"; endMonthSel.value = "11";
+$("asof-note").textContent = "Values are as of the market close on " + asOfLabel + ", unless you pick an earlier end date. Each investment is assumed to buy in at that month's average price.";
+$("splice").textContent = label(DATA.spliceMonth);
+$("cpi-month").textContent = cpiNowLabel;
 
 const DEFAULTS = { once: 10000, monthly: 500, yearly: 6000 };
 let amountEdited = false;
 function freq() { return document.querySelector('input[name="freq"]:checked').value; }
 function isDeposit(f, k) { return f === "once" ? k === 0 : f === "monthly" ? true : k % 12 === 0; }
+function parseAmount(s) { const n = Number(String(s).replace(/[$,\s]/g, "")); return isFinite(n) ? n : NaN; }
+function getEnd() {
+  if (endYearSel.value === "now") return { idx: asOfIdx, now: true };
+  return { idx: Number(endYearSel.value) * 12 + Number(endMonthSel.value), now: false };
+}
+function readMix() {
+  const w = {}; let sum = 0, bad = false;
+  ASSETS.forEach(a => { const v = Number($("mix-" + a.key).value); if (!isFinite(v) || v < 0) bad = true; w[a.key] = v; sum += v; });
+  return { w, sum, ok: !bad && Math.abs(sum - 100) < 1e-9 };
+}
 
-// Simulate deposits month by month. Returns value and amount put in at each month, plus final results.
-function simulate(key, amount, startIdx, f) {
-  if (levelAt(key, startIdx) == null) return null;
-  const N = asOfIdx - startIdx, vals = [], put = [], times = [];
-  let units = 0, total = 0;
+// Month-by-month simulation for one fund or a mix. weights: { key: fraction }.
+function simulate(weights, amount, startIdx, end, f, rebalance, real) {
+  const keys = Object.keys(weights).filter(k => weights[k] > 0);
+  for (const k of keys) if (levelAt(k, startIdx) == null) return null;
+  const N = end.idx - startIdx, endT = N + (end.now ? finalOffset : 0);
+  const units = {}; keys.forEach(k => units[k] = 0);
+  const vals = [], put = [], flows = [];
+  let total = 0, nominal = 0;
+  const worth = i => keys.reduce((s, k) => s + units[k] * levelAt(k, i), 0);
   for (let k = 0; k <= N; k++) {
-    const lv = levelAt(key, startIdx + k);
-    if (isDeposit(f, k)) { units += amount / lv; total += amount; times.push((N - k + finalOffset) / 12); }
-    vals.push(units * lv); put.push(total);
+    const i = startIdx + k;
+    if (rebalance && keys.length > 1 && k > 0 && k % 12 === 0) {
+      const V = worth(i);
+      keys.forEach(a => units[a] = V * weights[a] / levelAt(a, i));
+    }
+    if (isDeposit(f, k)) {
+      keys.forEach(a => units[a] += amount * weights[a] / levelAt(a, i));
+      const dep = real ? amount * cpiNow / cpiAt(i) : amount;
+      total += dep; nominal += amount;
+      flows.push([dep, (endT - k) / 12]);
+    }
+    const v = worth(i);
+    vals.push(real ? v * cpiNow / cpiAt(i) : v);
+    put.push(total);
   }
-  const value = units * series[key].final;
-  return { vals, put, value, total, deposits: times.length, rate: annualRate(amount, times, value) };
+  let value = end.now ? keys.reduce((s, k) => s + units[k] * series[k].final, 0) : worth(end.idx);
+  if (real && !end.now) value *= cpiNow / cpiAt(end.idx);
+  return { vals, put, value, total, nominal, deposits: flows.length, rate: annualRate(flows, value) };
 }
 
 // Money-weighted annual return: the rate r where every deposit, grown at r, adds up to the final value.
-function annualRate(amount, times, value) {
-  if (Math.max(...times) < 1) return null;
-  const f = r => times.reduce((s, t) => s + amount * Math.pow(1 + r, t), 0) - value;
+function annualRate(flows, value) {
+  if (Math.max(...flows.map(fl => fl[1])) < 1) return null;
+  const g = r => flows.reduce((s, [amt, t]) => s + amt * Math.pow(1 + r, t), 0) - value;
   let lo = -0.99, hi = 1;
-  for (let i = 0; i < 200; i++) { const mid = (lo + hi) / 2; if (f(mid) > 0) hi = mid; else lo = mid; }
+  for (let i = 0; i < 200; i++) { const mid = (lo + hi) / 2; if (g(mid) > 0) hi = mid; else lo = mid; }
   return (lo + hi) / 2;
 }
 
-function fill(el, key, res) {
+function fill(el, res, naText, real) {
   const v = el.querySelector("[data-value]"), dl = el.querySelector("[data-stats]"), na = el.querySelector("[data-na]");
-  if (!res) {
-    v.textContent = "No data"; dl.innerHTML = ""; na.hidden = false;
-    na.textContent = "Data starts in " + label(series[key].start) + ".";
-    return;
-  }
+  if (!res) { v.textContent = "No data"; dl.innerHTML = ""; na.hidden = false; na.textContent = naText; return; }
   na.hidden = true;
   v.textContent = usd.format(res.value);
   const gain = res.value - res.total;
   const rows = [
-    ["You put in", usd.format(res.total)],
-    ["Gain", (gain >= 0 ? "+" : "−") + usd.format(Math.abs(gain))],
-    ["Per year", res.rate == null ? "Under a year" : pct(res.rate)],
+    [real ? "You put in (today's $)" : "You put in", usd.format(res.total)],
+    [real ? "Gain after inflation" : "Gain", (gain >= 0 ? "+" : "−") + usd.format(Math.abs(gain))],
+    [real ? "Per year after inflation" : "Per year", res.rate == null ? "Under a year" : pct(res.rate)],
   ];
   dl.innerHTML = rows.map(([k, val]) => `<dt>${k}</dt><dd>${val}</dd>`).join("");
 }
@@ -306,16 +394,16 @@ function compact(v) {
   return "$" + Math.round(v);
 }
 
-function drawChart(results, startIdx, f) {
+function drawChart(lines, base, startIdx, end, f) {
   const W = 640, H = 280, L = 58, R = 12, T = 12, B = 28;
-  const N = asOfIdx - startIdx, n = N + finalOffset;
+  const N = end.idx - startIdx, n = N + (end.now ? finalOffset : 0);
   const step = Math.max(1, Math.floor(N / 400));
   const sample = (arr, fin) => { const pts = []; for (let i = 0; i <= N; i += step) pts.push([i, arr[i]]); pts.push([n, fin]); return pts; };
-  const any = results.sp;
-  const lines = ASSETS.map(a => results[a.key] ? { key: a.key, color: a.color, pts: sample(results[a.key].vals, results[a.key].value) } : null);
-  const putPts = f === "once" ? null : sample(any.put, any.total);
-  let maxV = any.total;
-  lines.forEach(l => l && l.pts.forEach(p => { if (p[1] > maxV) maxV = p[1]; }));
+  const drawn = lines.map(l => ({ ...l, pts: sample(l.res.vals, l.res.value) }));
+  const putPts = f === "once" ? null : sample(base.put, base.total);
+  let maxV = base.total;
+  drawn.forEach(l => l.pts.forEach(p => { if (p[1] > maxV) maxV = p[1]; }));
+  if (putPts) putPts.forEach(p => { if (p[1] > maxV) maxV = p[1]; });
   const stepY = niceStep(maxV, 4), topY = Math.ceil(maxV / stepY) * stepY;
   const x = i => L + (n === 0 ? 0 : (i / n) * (W - L - R));
   const y = v => T + (1 - v / topY) * (H - T - B);
@@ -325,7 +413,7 @@ function drawChart(results, startIdx, f) {
     svg += `<line class="grid" x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}"/>`;
     svg += `<text x="${L - 8}" y="${y(v) + 4}" text-anchor="end">${compact(v)}</text>`;
   }
-  const startYear = Math.floor(startIdx / 12), endYear = Math.floor(asOfIdx / 12);
+  const startYear = Math.floor(startIdx / 12), endYear = Math.floor(end.idx / 12);
   const span = Math.max(1, endYear - startYear);
   const yStep = [1, 2, 5, 10, 20, 25, 50].find(s => span / s <= 6) || 50;
   for (let yr = Math.ceil((startYear + (startIdx % 12 ? 1 : 0)) / yStep) * yStep; yr <= endYear; yr += yStep) {
@@ -335,9 +423,8 @@ function drawChart(results, startIdx, f) {
   }
   svg += `<line x1="${L}" x2="${W - R}" y1="${y(0)}" y2="${y(0)}" stroke="var(--muted)" stroke-width="1"/>`;
   if (putPts) svg += `<path d="${path(putPts)}" fill="none" stroke="var(--muted)" stroke-width="1.75" stroke-dasharray="5 4"/>`;
-  lines.forEach(l => {
-    if (!l) return;
-    svg += `<path d="${path(l.pts)}" fill="none" stroke="${l.color}" stroke-width="2.25" stroke-linejoin="round"/>`;
+  drawn.slice().reverse().forEach(l => {
+    svg += `<path d="${path(l.pts)}" fill="none" stroke="${l.color}" stroke-width="${l.width}" stroke-linejoin="round"/>`;
     const last = l.pts[l.pts.length - 1];
     svg += `<circle cx="${x(last[0])}" cy="${y(last[1])}" r="4" fill="${l.color}"/>`;
   });
@@ -346,55 +433,96 @@ function drawChart(results, startIdx, f) {
   $("contrib-legend").hidden = !putPts;
 }
 
-function drawTable(results, startIdx) {
-  const any = results.sp, N = asOfIdx - startIdx;
-  const cell = (key, k) => results[key] ? usd.format(k === "final" ? results[key].value : results[key].vals[k]) : "—";
-  const putCell = k => usd.format(k === "final" ? any.total : any.put[k]);
-  const row = (name, k) => `<tr><th scope="row">${name}</th><td>${putCell(k)}</td>${ASSETS.map(a => `<td>${cell(a.key, k)}</td>`).join("")}</tr>`;
+function drawTable(cols, base, startIdx, end) {
+  $("thead-row").innerHTML = `<th scope="col">Year</th><th scope="col">You put in</th>` + cols.map(c => `<th scope="col">${c.col}</th>`).join("");
+  const cell = (res, k) => res ? usd.format(k === "final" ? res.value : res.vals[k]) : "—";
+  const row = (name, k) => `<tr><th scope="row">${name}</th><td>${usd.format(k === "final" ? base.total : base.put[k])}</td>${cols.map(c => `<td>${cell(c.res, k)}</td>`).join("")}</tr>`;
   const rows = [row(label(MONTHS_YM(startIdx)) + " (start)", 0)];
   const firstJan = Math.ceil(startIdx / 12) * 12;
-  for (let i = firstJan === startIdx ? firstJan + 12 : firstJan; i <= asOfIdx; i += 12) rows.push(row(String(i / 12), i - startIdx));
-  rows.push(row(asOfLabel, "final"));
+  for (let i = firstJan === startIdx ? firstJan + 12 : firstJan; i < end.idx; i += 12) rows.push(row(String(i / 12), i - startIdx));
+  if (end.idx > startIdx || end.now) rows.push(row(end.now ? asOfLabel : label(MONTHS_YM(end.idx)), "final"));
   $("rows").innerHTML = rows.join("");
 }
-function MONTHS_YM(idx) { return Math.floor(idx / 12) + "-" + String(idx % 12 + 1).padStart(2, "0"); }
+
+function mixDescription(mix) {
+  const parts = ASSETS.filter(a => mix.w[a.key] > 0).map(a => mix.w[a.key] + "% " + a.short);
+  return parts.join(", ") + ($("rebalance").checked && parts.length > 1 ? ", rebalanced yearly" : parts.length > 1 ? ", not rebalanced" : "");
+}
 
 function update() {
-  const f = freq();
+  const f = freq(), real = $("real").checked;
   const amount = parseAmount(amountIn.value);
   const startIdx = Number(yearSel.value) * 12 + Number(monthSel.value);
+  const end = getEnd();
+  $("end-month-field").hidden = end.now;
+  $("amount-label").textContent = f === "once" ? "Amount invested" : f === "monthly" ? "Amount each month" : "Amount each year";
+  const mix = readMix();
+  const totalEl = $("mix-total");
+  totalEl.textContent = "Total: " + (isFinite(mix.sum) ? mix.sum : 0) + "%";
+  totalEl.classList.toggle("bad", !mix.ok);
   const err = $("error");
-  if (!(amount > 0)) { err.textContent = "Enter an amount greater than zero, like " + DEFAULTS[f].toLocaleString("en-US") + "."; err.hidden = false; return; }
-  if (startIdx > asOfIdx) { err.textContent = "Pick a month no later than " + label(DATA.lastMonth) + ", the latest full month in the data."; err.hidden = false; return; }
+  let msg = "";
+  if (!(amount > 0)) msg = "Enter an amount greater than zero, like " + DEFAULTS[f].toLocaleString("en-US") + ".";
+  else if (startIdx > asOfIdx) msg = "Pick a start month no later than " + label(DATA.lastMonth) + ", the latest full month in the data.";
+  else if (!end.now && end.idx > asOfIdx) msg = "Pick an end month no later than " + label(DATA.lastMonth) + ", or choose Today.";
+  else if (end.idx < startIdx) msg = "Pick an end date on or after the start date.";
+  if (msg) { err.textContent = msg; err.hidden = false; return; }
   err.hidden = true;
+
+  const rebal = $("rebalance").checked;
   const results = {};
-  ASSETS.forEach(a => { results[a.key] = simulate(a.key, amount, startIdx, f); fill($("out-" + a.key), a.key, results[a.key]); });
+  ASSETS.forEach(a => {
+    results[a.key] = simulate({ [a.key]: 1 }, amount, startIdx, end, f, false, real);
+    fill($("out-" + a.key), results[a.key], "Data starts in " + label(series[a.key].start) + ".", real);
+  });
+  let mixRes = null, mixNa = "";
+  $("mix-desc").textContent = mix.ok ? mixDescription(mix) : "";
+  if (!mix.ok) mixNa = "Your percentages add up to " + (isFinite(mix.sum) ? mix.sum : 0) + "%. Change them so they total 100%.";
+  else {
+    const w = {}; ASSETS.forEach(a => w[a.key] = mix.w[a.key] / 100);
+    mixRes = simulate(w, amount, startIdx, end, f, rebal, real);
+    if (!mixRes) mixNa = "Your mix includes " + ASSETS.filter(a => w[a.key] > 0 && !results[a.key]).map(a => a.short).join(" and ") + ", which has no data before " + ASSETS.filter(a => w[a.key] > 0 && !results[a.key]).map(a => label(series[a.key].start)).join(" and ") + ".";
+  }
+  fill($("out-mix"), mixRes, mixNa, real);
+  $("mix-legend").hidden = !mixRes;
+
   const sp = results.sp;
-  const when = label(MONTHS_YM(startIdx));
+  const when = label(MONTHS_YM(startIdx)), endLabel = end.now ? asOfLabel : label(MONTHS_YM(end.idx));
   let s;
   if (f === "once") s = `${usd.format(amount)} invested in ${when}`;
   else {
-    const per = f === "monthly" ? "a month" : "a year";
-    const n = sp.deposits;
-    s = `${usd.format(amount)} ${per} from ${when} through ${label(MONTHS_YM(f === "monthly" ? asOfIdx : startIdx + (n - 1) * 12))}, ${n.toLocaleString("en-US")} deposit${n === 1 ? "" : "s"} totaling ${usd.format(sp.total)},`;
+    const per = f === "monthly" ? "a month" : "a year", n = sp.deposits;
+    s = `${usd.format(amount)} ${per} from ${when} through ${label(MONTHS_YM(f === "monthly" ? end.idx : startIdx + (n - 1) * 12))}, ${n.toLocaleString("en-US")} deposit${n === 1 ? "" : "s"} totaling ${usd.format(sp.nominal)},`;
   }
-  const have = ASSETS.filter(a => results[a.key]);
-  const parts = have.map(a => `${usd.format(results[a.key].value)} in ${a.name}`);
-  s += ` would be worth about ${parts.length > 1 ? parts.slice(0, -1).join(", ") + ", or " + parts[parts.length - 1] : parts[0]} as of ${asOfLabel}.`;
-  const rated = have.filter(a => results[a.key].rate != null);
-  if (rated.length) s += " Per year, that's " + rated.map(a => `${pct(results[a.key].rate)} for ${a.short}`).join(", ") + ".";
+  const named = ASSETS.filter(a => results[a.key]).map(a => ({ name: a.name, short: a.short, res: results[a.key] }));
+  if (mixRes) named.push({ name: "your mix", short: "your mix", res: mixRes });
+  const parts = named.map(a => `${usd.format(a.res.value)} in ${a.name}`);
+  s += ` would ${end.now ? "be" : "have been"} worth about ${parts.length > 1 ? parts.slice(0, -1).join(", ") + ", or " + parts[parts.length - 1] : parts[0]} ${end.now ? "as of" : "by"} ${endLabel}${real ? ", in today's dollars" : ""}.`;
+  const rated = named.filter(a => a.res.rate != null);
+  if (rated.length) s += ` Per year${real ? " after inflation" : ""}, that's ` + rated.map(a => `${pct(a.res.rate)} for ${a.short}`).join(", ") + ".";
   const missing = ASSETS.filter(a => !results[a.key]);
   if (missing.length) s += " " + missing.map(a => a.short.charAt(0).toUpperCase() + a.short.slice(1) + " data starts in " + label(series[a.key].start) + ".").join(" ");
   $("summary").textContent = s;
-  $("amount-label").textContent = f === "once" ? "Amount invested" : f === "monthly" ? "Amount each month" : "Amount each year";
-  drawChart(results, startIdx, f);
-  drawTable(results, startIdx);
+
+  const note = $("mode-note");
+  note.hidden = !real;
+  note.textContent = real ? `All dollar amounts are shown in ${cpiNowLabel} dollars, so they reflect what the money could actually buy today.` : "";
+  $("table-caption").textContent = (real ? "In today's dollars: total" : "Total") + " put in and account value at the start of each January";
+
+  const lines = [];
+  if (mixRes) lines.push({ res: mixRes, color: "var(--mix)", width: 3 });
+  ASSETS.forEach(a => { if (results[a.key]) lines.push({ res: results[a.key], color: a.color, width: 2.25 }); });
+  drawChart(lines, sp, startIdx, end, f);
+  const cols = [];
+  if (mixRes) cols.push({ col: "Your mix", res: mixRes });
+  ASSETS.forEach(a => cols.push({ col: a.col, res: results[a.key] }));
+  drawTable(cols, sp, startIdx, end);
 }
 
 amountIn.addEventListener("blur", () => { const n = parseAmount(amountIn.value); if (n > 0) amountIn.value = n.toLocaleString("en-US", { maximumFractionDigits: 2 }); });
 amountIn.addEventListener("input", () => { amountEdited = true; update(); });
-monthSel.addEventListener("change", update);
-yearSel.addEventListener("change", update);
+[monthSel, yearSel, endYearSel, endMonthSel, $("real"), $("rebalance")].forEach(el => el.addEventListener("change", update));
+ASSETS.forEach(a => $("mix-" + a.key).addEventListener("input", update));
 document.querySelectorAll('input[name="freq"]').forEach(r => r.addEventListener("change", () => {
   if (!amountEdited) amountIn.value = DEFAULTS[freq()].toLocaleString("en-US");
   update();

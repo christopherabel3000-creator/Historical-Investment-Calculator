@@ -1,6 +1,6 @@
 # Historical Investment Calculator
 
-See what a past investment would be worth today. Enter an amount, choose one-time, monthly, or yearly investing, and pick a starting month. The calculator compares four low-cost funds side by side:
+See what a past investment would be worth. Enter an amount, choose one-time, monthly, or yearly investing, and pick start and end dates. The calculator compares four low-cost funds side by side, plus a custom mix of them with optional yearly rebalancing, and can show every result in today's dollars:
 
 | Asset | Modeled as | Yearly fee | Data starts |
 |---|---|---|---|
@@ -17,7 +17,9 @@ The page is a single file, `index.html`, with all data built in. It is designed 
 - **Bonds and T-bills:** Aswath Damodaran's [annual historical returns](https://pages.stern.nyu.edu/~adamodar/New_Home_Page/datafile/histretSP.html) through 2025, spread evenly across each year's months. 2026 bonds use month-end 10-year Treasury yields; 2026 T-bills use an estimate of 3.9% a year.
 - **Gold:** Monthly prices from [datasets/gold-prices](https://github.com/datasets/gold-prices), with recent daily prices from Financial Modeling Prep.
 
-Results ignore taxes and inflation. This is a historical illustration, not investment advice.
+- **Inflation:** CPI-U from Robert Shiller's dataset through July 2023, then Bureau of Labor Statistics figures. October 2025 was never published and is estimated.
+
+Results ignore taxes. This is a historical illustration, not investment advice.
 
 ## Updating the data
 
