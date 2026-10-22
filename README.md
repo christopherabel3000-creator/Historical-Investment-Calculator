@@ -16,7 +16,6 @@ The page is a single file, `index.html`, with all data built in. It is designed 
 - **S&P 500:** Robert Shiller's monthly price and dividend data (via the [datasets/s-and-p-500](https://github.com/datasets/s-and-p-500) mirror) through June 2023, then SPY dividend-adjusted prices from Financial Modeling Prep, with SPY's fee added back.
 - **Bonds and T-bills:** Aswath Damodaran's [annual historical returns](https://pages.stern.nyu.edu/~adamodar/New_Home_Page/datafile/histretSP.html) through 2025, spread evenly across each year's months. 2026 bonds use month-end 10-year Treasury yields; 2026 T-bills use an estimate of 3.9% a year.
 - **Gold:** Monthly prices from [datasets/gold-prices](https://github.com/datasets/gold-prices), with recent daily prices from Financial Modeling Prep.
-
 - **Inflation:** CPI-U from Robert Shiller's dataset through July 2023, then Bureau of Labor Statistics figures. October 2025 was never published and is estimated.
 
 Results ignore taxes. This is a historical illustration, not investment advice.
