@@ -10,7 +10,7 @@ See what a past investment would be worth. Enter an amount, choose one-time, mon
 | Bitcoin | Bitcoin fund like Grayscale Bitcoin Mini Trust (BTC) | 0.15% | 2011 |
 | Money market | 3-month Treasury bills, fee of Vanguard Federal Money Market (VMFXX) | 0.11% | 1928 |
 
-The page is a single file, `index.html`, with all data built in. It is designed to work with screen readers: results are written out as a sentence, the chart has a matching year-by-year table, and all controls are labeled.
+The page is a single file, `index.html`, with all data built in. It is designed to work with screen readers: results are written out as a sentence, the chart has a matching year-by-year table, and all controls are labeled. `preview.png` is the image sites like LinkedIn show when the link is shared.
 
 ## Data sources
 

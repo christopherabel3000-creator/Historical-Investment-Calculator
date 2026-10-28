@@ -132,7 +132,6 @@ gd_final = gl * recent[last_date] / recent[prev] * (1 - GOLD_FEE) ** frac_years
 # ---- CPI (inflation) ----
 # Shiller CPI (CPI-U, not seasonally adjusted) through 2023-07, then BLS CPI-U.
 # 2025-10 was never published (government shutdown) and is interpolated.
-# Aug-Sep 2026 extend July using FMP's seasonally adjusted month-to-month changes.
 cpi = {}
 for r in csv.DictReader(open(sp_path)):
     v = float(r["Consumer Price Index"])
