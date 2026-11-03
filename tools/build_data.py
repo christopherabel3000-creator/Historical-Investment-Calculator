@@ -141,7 +141,8 @@ for line in open(cpi_recent_path):
     if line.strip():
         k, v = line.strip().split(",")
         cpi[k] = float(v)
-cpi_levels = [cpi[m] for m in months]
+# The newest month's CPI may not be published yet; the page uses the latest available.
+cpi_levels = [cpi[m] for m in months if m in cpi]
 
 # ---- Bitcoin ----
 btc = {}
