@@ -15,7 +15,7 @@ The page is a single file, `index.html`, with all data built in. It is designed 
 ## Data sources
 
 - **S&P 500:** Robert Shiller's monthly price and dividend data (via the [datasets/s-and-p-500](https://github.com/datasets/s-and-p-500) mirror) through June 2023, then SPY dividend-adjusted prices from Financial Modeling Prep, with SPY's fee added back.
-- **Bonds and T-bills:** Aswath Damodaran's [annual historical returns](https://pages.stern.nyu.edu/~adamodar/New_Home_Page/datafile/histretSP.html) through 2025, spread evenly across each year's months. 2026 bonds use month-end 10-year Treasury yields; 2026 T-bills use an estimate of 3.9% a year.
+- **Bonds and T-bills:** Aswath Damodaran's [annual historical returns](https://pages.stern.nyu.edu/~adamodar/New_Home_Page/datafile/histretSP.html) spread evenly across each year's months. For a year that data doesn't cover yet, bonds use month-end 10-year Treasury yields and T-bills use the average 3-month T-bill yield so far that year.
 - **Gold:** Monthly prices from [datasets/gold-prices](https://github.com/datasets/gold-prices), with recent daily prices from Financial Modeling Prep.
 - **Bitcoin:** Daily prices from Financial Modeling Prep, averaged by month. Bitcoin funds only launched in 2024; earlier prices come from a small, thinly traded market.
 - **Inflation:** CPI-U from Robert Shiller's dataset through July 2023, then Bureau of Labor Statistics figures. October 2025 was never published and is estimated.
@@ -24,8 +24,14 @@ Results ignore taxes. This is a historical illustration, not investment advice.
 
 ## Updating the data
 
-The `tools` folder rebuilds the page:
+The data updates itself. A GitHub Action (`.github/workflows/update-data.yml`) runs every weekday evening after the market closes: it fetches the latest prices, rebuilds the page and commits the result. On days with no new prices, it changes nothing. You can also start it by hand from the Actions tab with "Run workflow".
 
-1. Refresh the files in `tools/data`. The SPY price file (`spy_adj.json`) comes from a Financial Modeling Prep account and isn't stored in the repo.
+It needs a Financial Modeling Prep API key saved as a repository secret named `FMP_API_KEY` (Settings, then Secrets and variables, then Actions). Gold's monthly history comes from the datasets/gold-prices repo and inflation from FRED (CPIAUCNS); neither needs a key.
+
+To run it yourself, from the repo root:
+
+1. `FMP_API_KEY=your-key python3 tools/update.py`
 2. From the `tools` folder, run `build_data.py` (see the usage line in `assemble.py`), then `python3 assemble.py`.
-3. Commit the new `index.html`.
+3. Commit the changes.
+
+Once a year, after Aswath Damodaran publishes the previous year's returns (usually in January), add that year's row to `tools/data/tbills.csv` and `tools/data/tbonds.csv`. Until then, the estimates described above fill in.

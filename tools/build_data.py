@@ -8,10 +8,11 @@ S&P 500 (as a fund charging 0.04%/yr, like Vanguard's VFIAX):
   - 0.04%/yr fee taken out of every month.
   - Final value uses the latest SPY close.
 T-bills: Damodaran annual 3-month T-bill returns 1928-2025, spread evenly
-  across each year's months; 2026 uses ~3.9%.
+  across each year's months; later years use tbill_estimates.csv.
 """
 import csv, json, sys, datetime
 from collections import defaultdict
+from pathlib import Path
 
 sp_path, tb_path, spy_path, out_path, bond_path, yields_path, gold_path, gold_recent_path, cpi_recent_path, btc_monthly_path, btc_last_path = sys.argv[1:12]
 FUND_FEE = 0.0004
@@ -69,7 +70,18 @@ with open(tb_path) as f:
         if line.strip():
             y, r = line.strip().split(",")
             tb_annual[int(y)] = float(r.rstrip("%")) / 100
-tb_annual[2026] = 0.039
+# Years the annual data doesn't cover yet use an estimate: the average 3-month T-bill
+# yield so far that year (tbill_estimates.csv, kept current by update.py).
+est_path = Path(tb_path).with_name("tbill_estimates.csv")
+if est_path.exists():
+    for line in open(est_path):
+        if line.strip():
+            y, r = line.strip().split(",")
+            tb_annual.setdefault(int(y), float(r.rstrip("%")) / 100)
+_last_year = int(months[-1][:4])
+for _y in range(min(tb_annual), max(_last_year, datetime.date.fromisoformat(last_date).year) + 1):
+    if _y not in tb_annual:  # no estimate yet: carry the latest rate forward
+        tb_annual[_y] = tb_annual[_y - 1]
 tb_levels, t = [], 1.0
 tb_start = "1928-01"
 for m in months:
@@ -141,8 +153,15 @@ for line in open(cpi_recent_path):
     if line.strip():
         k, v = line.strip().split(",")
         cpi[k] = float(v)
-# The newest month's CPI may not be published yet; the page uses the latest available.
-cpi_levels = [cpi[m] for m in months if m in cpi]
+# The newest month or two of CPI may not be published yet; the page uses the latest
+# available. Stop at the first missing month so the series never has a gap.
+cpi_levels = []
+for m in months:
+    if m not in cpi:
+        break
+    cpi_levels.append(cpi[m])
+if len(months) - len(cpi_levels) > 3:
+    raise SystemExit(f"Inflation data stops at {months[len(cpi_levels) - 1]}; check cpi_recent.csv.")
 
 # ---- Bitcoin ----
 btc = {}
