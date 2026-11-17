@@ -35,3 +35,18 @@ To run it yourself, from the repo root:
 3. Commit the changes.
 
 Once a year, after Aswath Damodaran publishes the previous year's returns (usually in January), add that year's row to `tools/data/tbills.csv` and `tools/data/tbonds.csv`. Until then, the estimates described above fill in.
+
+## The iPhone app
+
+The App Store version, "What If I'd Invested" (`com.playbyear.whatifinvested`), wraps the same page with [Capacitor](https://capacitorjs.com). `scripts/build-www.js` copies `index.html`, `privacy.html`, `support.html`, `fonts/` and `icons/` into `www/`, and `npx cap sync ios` puts them in the Xcode project in `ios/`.
+
+The page has prices built in, but the app also downloads `data.json` from this site each time it opens, and keeps the newest copy for offline use. `assemble.py` writes `data.json` alongside `index.html`, so the daily update publishes both. If new prices arrive while the app is open, it offers to switch to them. On the website nothing changes: the page is rebuilt every weekday anyway.
+
+There's no Mac needed: `.github/workflows/ios.yml` builds the app on GitHub's Macs. Every push that touches the calculator checks that it still builds; running the workflow by hand (Actions, iPhone app, Run workflow) signs it and sends it to TestFlight. Signing needs four repo secrets, listed at the top of the workflow.
+
+Other files for the app:
+
+- `privacy.html`, `support.html`: the privacy policy and support page, linked from the bottom of the calculator and used as the App Store's Privacy Policy URL and Support URL
+- `fonts/`: the three fonts, bundled so the app works offline (SIL Open Font License)
+- `icons/`, `tools/icon.html`, `tools/icon.py`: the app icon, launch image and website icons. `tools/screenshots.py` takes the App Store screenshots. Both use Python and Playwright; the notes at the top of each say how.
+- `appstore/`: the App Store listing text and screenshots. Not part of the calculator or the app.

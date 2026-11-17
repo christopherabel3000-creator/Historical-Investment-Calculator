@@ -12,8 +12,9 @@
 <meta property="og:image:height" content="627">
 <meta property="og:image:alt" content="Chart of $10,000 invested in January 1990: an S&amp;P 500 index fund grew far more than gold, Treasury bonds or a money market fund.">
 <meta name="twitter:card" content="summary_large_image">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,500;6..72,600&family=Public+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="fonts/fonts.css">
+<link rel="icon" href="icons/favicon-32.png" sizes="32x32">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <style>
 /* Layout: one narrow column, like a statement — inputs on top, the two outcomes side by side, then the growth chart and the yearly ledger. */
 :root {
@@ -146,16 +147,23 @@ fieldset.mix legend { font-weight: 600; font-size: .9rem; padding: 0 .35rem; }
 @media (max-width: 34rem) { .extremes td { min-width: 0; } .extremes th[scope="row"] { white-space: normal; } .extremes th, .extremes td { padding-inline: .35rem; } }
 .mode-note { color: var(--muted); font-size: .9rem; margin: .5rem 0 0; }
 .full { grid-column: 1 / -1; }
+.fresh { margin: 1rem 0 0; padding: .75rem 1rem; background: var(--card); border: 1px solid var(--rule); border-radius: 8px; }
+.fresh button { font: 600 1rem var(--body); color: var(--card); background: var(--stock); border: 0; border-radius: 6px; padding: .55rem 1rem; min-height: 2.75rem; margin-left: .25rem; cursor: pointer; }
+.fresh button:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
 #wd { margin-top: 1rem; }
 .wd-results[hidden] { display: none; }
 .wd-results { display: grid; gap: 1rem; margin-top: 1.25rem; }
 .wd-results .table-wrap { padding: 0; max-height: none; }
+.wd-results th, .wd-results td { white-space: normal; vertical-align: top; }
+.wd-results td { min-width: 6.5rem; }
+.wd-results .acct { display: block; white-space: nowrap; color: var(--muted); font-size: .85rem; }
 </style>
 
 <main>
   <header>
     <p class="eyebrow">Historical returns calculator</p>
     <h1>What if I'd invested?</h1>
+    <p id="fresh" class="fresh" hidden><span id="fresh-text"></span> <button type="button" id="fresh-btn">Use the new prices</button></p>
     <p class="lede">Pick an amount, how often you'd invest it, and when, to see what it would be worth in five low-cost funds: an S&amp;P 500 index fund, a Treasury bond fund, a gold fund, a bitcoin fund, and a money market fund. You can also build your own mix and adjust for inflation.</p>
   </header>
 
@@ -383,11 +391,33 @@ fieldset.mix legend { font-weight: 600; font-size: .9rem; padding: 0 .35rem; }
       <li>"Will my money last?" takes 1/12 of the yearly withdrawal at the start of each month, then applies that month's returns, with fund fees included. "Actual history" replays every 30-year (or your chosen length) stretch that starts in a month the data covers; these stretches overlap heavily, so they hold only a few truly separate periods. "Simulated futures" are 10,000 paths built by stitching together randomly chosen real 12-month stretches, which keeps patterns within each year (like stocks and bonds moving together or apart) but mixes up the order of years. Both use only the months every fund in the mix has data for, so a mix with bitcoin draws on 2011 onward only, and a plan can't be longer than the data it draws on. With inflation-adjusted withdrawals, all amounts are in today's dollars; without, ending balances are in future dollars. "How much I need to save" finds, for each path, the starting balance that would pay every withdrawal and end at exactly $0, then reports the balance that covers 50%, 75%, 90%, 95% or 99% of paths, rounded up to the next $1,000. Taxes are ignored. Real returns may be lower than this mostly strong century for US markets, which is what the "Future returns" setting is for.</li>
       <li>This is a historical illustration, not investment advice. Past returns don't predict future ones.</li>
     </ul>
+    <p><a href="support.html">Support and questions</a> · <a href="privacy.html">Privacy policy</a></p>
   </section>
 </main>
 
-<script>
-const DATA = __DATA__;
+<script type="module">
+// The prices built into this page. On the website they're always the newest, because the page is rebuilt every weekday.
+// The App Store app also downloads data.json, which the same daily update publishes, and uses whichever copy is newest.
+const BUILT_IN = __DATA__;
+const DATA_URL = "https://christopherabel3000-creator.github.io/Historical-Investment-Calculator/data.json";
+const DATA_KEY = "hic-data";
+const IN_APP = (() => { try { const C = window.Capacitor; return !!(C && C.isNativePlatform && C.isNativePlatform()); } catch (e) { return false; } })();
+const looksRight = d => !!(d && typeof d.asOfDate === "string" && typeof d.lastMonth === "string" && ["sp", "tb", "bd", "gd", "bc", "cpi"].every(k => d[k] && Array.isArray(d[k].levels)));
+const newest = (a, b) => looksRight(b) && b.asOfDate > a.asOfDate ? b : a;
+async function download(ms) {
+  const ctl = new AbortController(), t = setTimeout(() => ctl.abort(), ms);
+  try { const r = await fetch(DATA_URL + "?t=" + Date.now(), { signal: ctl.signal, cache: "no-store" }); return r.ok ? await r.json() : null; }
+  catch (e) { return null; } finally { clearTimeout(t); }
+}
+async function loadData() {
+  if (!IN_APP) return BUILT_IN;
+  let best = BUILT_IN;
+  try { best = newest(best, JSON.parse(localStorage.getItem(DATA_KEY) || "null")); } catch (e) {}
+  const fresh = await download(2500);
+  if (newest(best, fresh) === fresh) { best = fresh; try { localStorage.setItem(DATA_KEY, JSON.stringify(fresh)); } catch (e) {} }
+  return best;
+}
+const DATA = await loadData();
 const MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
 
 function toIndex(ym) { const [y, m] = ym.split("-").map(Number); return y * 12 + (m - 1); }
@@ -692,6 +722,22 @@ document.querySelectorAll('input[name="freq"]').forEach(r => r.addEventListener(
 $("calc").addEventListener("submit", e => { e.preventDefault(); update(); });
 update();
 
+// ---- In the app: check for newer prices when it comes back to the screen ----
+if (IN_APP) {
+  let lastCheck = Date.now();
+  document.addEventListener("visibilitychange", async () => {
+    if (document.visibilityState !== "visible" || Date.now() - lastCheck < 3 * 3600e3) return;
+    lastCheck = Date.now();
+    const fresh = await download(8000);
+    if (newest(DATA, fresh) !== fresh) return;
+    try { localStorage.setItem(DATA_KEY, JSON.stringify(fresh)); } catch (e) {}
+    const day = new Date(fresh.asOfDate + "T12:00:00").toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+    $("fresh-text").textContent = `Newer prices are ready, through ${day}.`;
+    $("fresh").hidden = false;
+  });
+  $("fresh-btn").addEventListener("click", () => location.reload());
+}
+
 // ---- Will my money last? ----
 const WD_SIMS = 10000;
 const cpiLastIdx = cpiStart + cpiLevels.length - 1;
@@ -852,7 +898,7 @@ function wdNeedUpdate(keys, w, R, months, perMonth, yearly, years, real, haircut
   // Round up to the next $1,000 so a balance shown covers the case it describes.
   const q = (arr, p) => Math.ceil(arr[Math.min(arr.length - 1, Math.ceil(p * arr.length) - 1)] / 1000) * 1000;
   const rate = v => (yearly / v * 100).toLocaleString("en-US", { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + "%";
-  const cell = v => `${usd.format(v)} (${rate(v)} a year)`;
+  const cell = v => `${usd.format(v)}<span class="acct">${rate(v)} a year</span>`;
   const toughest = hist.reduce((a, b) => b.need > a.need ? b : a);
   const most = Math.ceil(toughest.need / 1000) * 1000;
   const mixTxt = ASSETS.filter(a => w[a.key] > 0).map(a => Math.round(w[a.key] * 100) + "% " + a.short).join(", ");

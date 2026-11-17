@@ -1,0 +1,109 @@
+# What If I'd Invested: the iPhone app, built on GitHub's Macs (no Mac needed at home).
+#
+# - Every push to main that touches the calculator checks that the app still builds (unsigned, nothing sent
+#   anywhere).
+# - "Run workflow" on this workflow's page in the Actions tab (or ask Claude) builds a signed copy and
+#   sends it to App Store Connect, where it shows up in TestFlight after Apple processes it.
+#
+# Signing uses an App Store Connect API key, kept in the repo's secrets (Settings, Secrets and
+# variables, Actions):
+#   APPLE_TEAM_ID       the 10-character Team ID from the Apple Developer membership page
+#   ASC_KEY_ID          the API key's Key ID
+#   ASC_ISSUER_ID       the Issuer ID shown above the list of keys
+#   ASC_KEY_P8          the whole text of the downloaded AuthKey_....p8 file
+# The key needs the Admin role, so Xcode can make the signing certificate and profile by itself.
+name: iPhone app
+
+on:
+  push:
+    branches: [main]
+    paths: ["index.html", "privacy.html", "support.html", "fonts/**", "icons/**", "ios/**", "capacitor.config.json", "package.json", "package-lock.json", "scripts/**", ".github/workflows/ios.yml"]
+  workflow_dispatch:
+    inputs:
+      upload:
+        description: "Send a signed build to TestFlight"
+        type: boolean
+        default: true
+
+concurrency:
+  group: ios-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: macos-26
+    timeout-minutes: 45
+    defaults:
+      run:
+        shell: bash  # stops on a failure even when the output is piped through tail
+    env:
+      UPLOAD: ${{ github.event_name == 'workflow_dispatch' && inputs.upload }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Use the newest Xcode
+        run: |
+          X=$(ls -d /Applications/Xcode_*.app | grep -v beta | sort -V | tail -1)
+          sudo xcode-select -s "$X"
+          xcodebuild -version
+
+      - name: Put the calculator into the app
+        run: |
+          npm ci
+          node scripts/build-www.js
+          npx cap sync ios
+
+      - name: Check that the app builds
+        if: env.UPLOAD != 'true'
+        working-directory: ios/App
+        run: |
+          xcodebuild -project App.xcodeproj -scheme App -configuration Release \
+            -destination 'generic/platform=iOS' -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO build | tail -40
+
+      - name: Build, sign and send to TestFlight
+        if: env.UPLOAD == 'true'
+        working-directory: ios/App
+        env:
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+        run: |
+          for v in APPLE_TEAM_ID ASC_KEY_ID ASC_ISSUER_ID ASC_KEY_P8; do
+            if [ -z "${!v}" ]; then echo "::error::The secret $v isn't set yet (Settings, Secrets and variables, Actions)."; exit 1; fi
+          done
+          KEY="$RUNNER_TEMP/AuthKey_$ASC_KEY_ID.p8"
+          printf '%s\n' "$ASC_KEY_P8" > "$KEY"
+          AUTH=(-allowProvisioningUpdates -authenticationKeyPath "$KEY" -authenticationKeyID "$ASC_KEY_ID" -authenticationKeyIssuerID "$ASC_ISSUER_ID")
+          # The archive is built unsigned and signed when it's exported for the App Store. Signing the
+          # archive itself would need a development profile, and Apple only makes one for a team with a
+          # registered device.
+          # Each upload needs a higher build number than the last
+          BUILD_NO=$((GITHUB_RUN_NUMBER + 100))
+          xcodebuild -project App.xcodeproj -scheme App -configuration Release \
+            -destination 'generic/platform=iOS' -archivePath "$RUNNER_TEMP/App.xcarchive" -derivedDataPath build \
+            DEVELOPMENT_TEAM="$APPLE_TEAM_ID" CURRENT_PROJECT_VERSION="$BUILD_NO" \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" archive | tail -40
+          cat > "$RUNNER_TEMP/ExportOptions.plist" <<EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0"><dict>
+            <key>method</key><string>app-store-connect</string>
+            <key>destination</key><string>upload</string>
+            <key>teamID</key><string>$APPLE_TEAM_ID</string>
+            <key>signingStyle</key><string>automatic</string>
+            <key>manageAppVersionAndBuildNumber</key><false/>
+            <key>uploadSymbols</key><true/>
+          </dict></plist>
+          EOF
+          xcodebuild -exportArchive -archivePath "$RUNNER_TEMP/App.xcarchive" \
+            -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist" -exportPath "$RUNNER_TEMP/export" \
+            "${AUTH[@]}"
+          rm -f "$KEY"
+          echo "Build $BUILD_NO sent to App Store Connect. It shows up in TestFlight once Apple finishes processing it." >> "$GITHUB_STEP_SUMMARY"

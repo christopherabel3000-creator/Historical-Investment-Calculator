@@ -1,2 +1,11 @@
 tools/data/spy_adj.json
 __pycache__/
+node_modules
+www/
+ios/App/App/public/
+ios/App/App/capacitor.config.json
+ios/App/App/config.xml
+ios/App/build/
+ios/DerivedData/
+*.ipa
+*.p8

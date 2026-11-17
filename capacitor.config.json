@@ -1,0 +1,10 @@
+{
+  "appId": "com.playbyear.whatifinvested",
+  "appName": "What If I'd Invested",
+  "webDir": "www",
+  "ios": {
+    "contentInset": "never",
+    "backgroundColor": "#f6f8f6",
+    "limitsNavigationsToAppBoundDomains": false
+  }
+}

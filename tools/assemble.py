@@ -17,4 +17,6 @@ full = (
     + "\n</body>\n</html>\n"
 )
 (here.parent / "index.html").write_text(full)
-print("Wrote index.html")
+# The same data on its own, for the App Store app to download (see DATA_URL in template.html)
+(here.parent / "data.json").write_text((here / "returns.json").read_text().strip() + "\n")
+print("Wrote index.html and data.json")

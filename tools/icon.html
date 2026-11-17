@@ -1,0 +1,23 @@
+<!doctype html>
+<!-- What If I'd Invested: the app icon and launch image, drawn in the calculator's own colors.
+     tools/icon.py opens this page and saves it as PNG files. ?splash draws the launch image. -->
+<html><head><meta charset="utf-8">
+<style>
+  html, body { margin: 0; }
+  .icon { width: 1024px; height: 1024px; background: radial-gradient(circle at 30% 20%, #2a8a61 0%, #1c6b4a 45%, #10442f 100%); position: relative; overflow: hidden; }
+  .splash { width: 2732px; height: 2732px; background: #f6f8f6; display: grid; place-items: center; }
+  .splash .icon { transform: scale(.55); border-radius: 225px; box-shadow: 0 40px 90px rgba(16, 68, 47, .25); }
+  svg { position: absolute; inset: 0; }
+</style></head>
+<body><div id="wrap"><div class="icon">
+<svg viewBox="0 0 1024 1024" width="1024" height="1024">
+  <g stroke="rgba(255,255,255,.14)" stroke-width="6">
+    <line x1="150" x2="874" y1="300" y2="300"/><line x1="150" x2="874" y1="500" y2="500"/><line x1="150" x2="874" y1="700" y2="700"/>
+  </g>
+  <line x1="150" x2="874" y1="840" y2="840" stroke="rgba(255,255,255,.45)" stroke-width="10" stroke-linecap="round"/>
+  <path d="M170 760 L300 690 L390 720 L500 560 L590 600 L700 400 L780 430 L860 230 L860 840 L170 840 Z" fill="rgba(232,187,85,.18)"/>
+  <path d="M170 760 L300 690 L390 720 L500 560 L590 600 L700 400 L780 430 L860 230" fill="none" stroke="#f6f8f6" stroke-width="44" stroke-linejoin="round" stroke-linecap="round"/>
+  <circle cx="860" cy="230" r="58" fill="#e8bb55" stroke="#f6f8f6" stroke-width="16"/>
+</svg></div></div>
+<script>if (location.search.includes('splash')) document.getElementById('wrap').className = 'splash';</script>
+</body></html>

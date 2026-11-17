@@ -1,0 +1,16 @@
+{
+  "name": "historical-investment-calculator",
+  "private": true,
+  "description": "What If I'd Invested. The calculator itself is plain files with no build step; the packages here are only for the iPhone app (Capacitor).",
+  "scripts": {
+    "www": "node scripts/build-www.js",
+    "ios": "node scripts/build-www.js && npx cap sync ios"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "8.6.2"
+  },
+  "dependencies": {
+    "@capacitor/core": "8.6.2",
+    "@capacitor/ios": "8.6.2"
+  }
+}
