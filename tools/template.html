@@ -145,6 +145,11 @@ fieldset.mix legend { font-weight: 600; font-size: .9rem; padding: 0 .35rem; }
 .extremes .nw { white-space: nowrap; }
 @media (max-width: 34rem) { .extremes td { min-width: 0; } .extremes th[scope="row"] { white-space: normal; } .extremes th, .extremes td { padding-inline: .35rem; } }
 .mode-note { color: var(--muted); font-size: .9rem; margin: .5rem 0 0; }
+.full { grid-column: 1 / -1; }
+#wd { margin-top: 1rem; }
+.wd-results[hidden] { display: none; }
+.wd-results { display: grid; gap: 1rem; margin-top: 1.25rem; }
+.wd-results .table-wrap { padding: 0; max-height: none; }
 </style>
 
 <main>
@@ -294,6 +299,62 @@ fieldset.mix legend { font-weight: 600; font-size: .9rem; padding: 0 .35rem; }
     </div>
   </details>
 
+  <section class="chart-wrap" aria-labelledby="wd-h">
+    <h2 id="wd-h">Will my money last?</h2>
+    <p class="mode-note">Start with a balance, take money out every month, and see how often it would have run out. The calculator replays real stretches of history and also builds 10,000 possible futures by shuffling real 12-month periods into new orders.</p>
+    <form id="wd" novalidate>
+      <div>
+        <label for="wd-balance">Starting balance</label>
+        <div class="money"><span aria-hidden="true">$</span><input id="wd-balance" inputmode="decimal" autocomplete="off" value="1,000,000"></div>
+      </div>
+      <div>
+        <label for="wd-amount">Withdrawal per year</label>
+        <div class="money"><span aria-hidden="true">$</span><input id="wd-amount" inputmode="decimal" autocomplete="off" value="40,000" aria-describedby="wd-rate"></div>
+      </div>
+      <div>
+        <label for="wd-years">Years</label>
+        <input id="wd-years" type="number" inputmode="numeric" min="1" max="60" step="1" value="30">
+      </div>
+      <p id="wd-rate" class="mix-hint full"></p>
+      <div class="check">
+        <input type="checkbox" id="wd-infl" checked>
+        <label for="wd-infl">Raise withdrawals with inflation</label>
+      </div>
+      <div class="full">
+        <label for="wd-future">Future returns</label>
+        <select id="wd-future">
+          <option value="0">Same as the past</option>
+          <option value="0.01">1 percentage point a year lower than the past</option>
+          <option value="0.02">2 percentage points a year lower than the past</option>
+        </select>
+      </div>
+      <fieldset class="mix">
+        <legend>Mix for this plan</legend>
+        <p class="mix-hint" id="wd-mix-hint">Percentages must add up to 100. The mix is reset to these percentages once a year, and withdrawals come out of each fund in proportion.</p>
+        <div class="mix-grid">
+          <div><label for="wd-sp">S&amp;P 500</label><div class="pct"><input type="number" id="wd-sp" min="0" max="100" step="5" value="60" aria-describedby="wd-mix-hint"><span aria-hidden="true">%</span></div></div>
+          <div><label for="wd-bd">Treasury bonds</label><div class="pct"><input type="number" id="wd-bd" min="0" max="100" step="5" value="40" aria-describedby="wd-mix-hint"><span aria-hidden="true">%</span></div></div>
+          <div><label for="wd-gd">Gold</label><div class="pct"><input type="number" id="wd-gd" min="0" max="100" step="5" value="0" aria-describedby="wd-mix-hint"><span aria-hidden="true">%</span></div></div>
+          <div><label for="wd-bc">Bitcoin</label><div class="pct"><input type="number" id="wd-bc" min="0" max="100" step="5" value="0" aria-describedby="wd-mix-hint"><span aria-hidden="true">%</span></div></div>
+          <div><label for="wd-tb">Money market</label><div class="pct"><input type="number" id="wd-tb" min="0" max="100" step="5" value="0" aria-describedby="wd-mix-hint"><span aria-hidden="true">%</span></div></div>
+        </div>
+        <p class="mix-total" id="wd-total"></p>
+      </fieldset>
+    </form>
+    <p id="wd-error" class="error" role="alert" hidden></p>
+    <div class="wd-results" id="wd-results">
+      <p id="wd-summary" class="summary" aria-live="polite"></p>
+      <div class="table-wrap">
+        <table>
+          <caption id="wd-caption"></caption>
+          <thead><tr><th scope="col">Outcome</th><th scope="col">Simulated futures</th><th scope="col">Actual history</th></tr></thead>
+          <tbody id="wd-rows"></tbody>
+        </table>
+      </div>
+      <p class="mode-note" id="wd-note"></p>
+    </div>
+  </section>
+
   <section class="notes" aria-labelledby="notes-h">
     <h2 id="notes-h">About the numbers</h2>
     <ul>
@@ -308,6 +369,7 @@ fieldset.mix legend { font-weight: 600; font-size: .9rem; padding: 0 .35rem; }
       <li>Your mix splits every deposit across the funds by your percentages. With yearly rebalancing, the whole account is reset to those percentages every 12 months from your start month. Without it, each fund grows on its own and the mix drifts.</li>
       <li>Inflation adjustment uses the Consumer Price Index (CPI-U) from Robert Shiller's dataset and the Bureau of Labor Statistics. "Today's dollars" means <span id="cpi-month"></span> dollars, the latest inflation data. The October 2025 figure was never published because of the government shutdown, so it is estimated. "Per year" figures in today's dollars are returns after inflation.</li>
       <li>For monthly or yearly investing, each deposit buys in on the start month and every month or year after it, through the end date. "Per year" is the money-weighted annual return, which accounts for when each deposit went in. Results include the fund fees above but ignore taxes.</li>
+      <li>"Will my money last?" takes 1/12 of the yearly withdrawal at the start of each month, then applies that month's returns, with fund fees included. "Actual history" replays every 30-year (or your chosen length) stretch that starts in a month the data covers; these stretches overlap heavily, so they hold only a few truly separate periods. "Simulated futures" are 10,000 paths built by stitching together randomly chosen real 12-month stretches, which keeps patterns within each year (like stocks and bonds moving together or apart) but mixes up the order of years. Both use only the months every fund in the mix has data for, so a mix with bitcoin draws on 2011 onward only. With inflation-adjusted withdrawals, all amounts are in today's dollars; without, ending balances are in future dollars. Taxes are ignored. Real returns may be lower than this mostly strong century for US markets, which is what the "Future returns" setting is for.</li>
       <li>This is a historical illustration, not investment advice. Past returns don't predict future ones.</li>
     </ul>
   </section>
@@ -618,4 +680,133 @@ document.querySelectorAll('input[name="freq"]').forEach(r => r.addEventListener(
 }));
 $("calc").addEventListener("submit", e => { e.preventDefault(); update(); });
 update();
+
+// ---- Will my money last? ----
+const WD_SIMS = 10000;
+const cpiLastIdx = cpiStart + cpiLevels.length - 1;
+// Small seeded random number generator, so the same inputs always give the same answer.
+function mulberry32(a) { return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+
+// Monthly growth factors for each fund over the months every fund in the mix (and inflation data) covers.
+function wdReturns(keys, real, haircut) {
+  let start = cpiStart, last = Math.min(asOfIdx, cpiLastIdx);
+  keys.forEach(k => { start = Math.max(start, series[k].s); last = Math.min(last, series[k].s + series[k].levels.length - 1); });
+  const M = last - start, adj = Math.pow(1 - haircut, 1 / 12), out = {};
+  keys.forEach(k => {
+    const r = new Float64Array(M);
+    for (let i = 0; i < M; i++) {
+      let g = levelAt(k, start + i + 1) / levelAt(k, start + i);
+      if (real) g /= cpiAt(start + i + 1) / cpiAt(start + i);
+      r[i] = g * adj;
+    }
+    out[k] = r;
+  });
+  return { start, M, r: out };
+}
+
+// One retirement path. at(m) gives the data month used for plan month m. Returns the month money ran out (-1 if never) and the ending balance.
+function wdRun(keys, w, R, at, months, balance, perMonth) {
+  const b = keys.map(k => balance * w[k]);
+  for (let m = 0; m < months; m++) {
+    let total = 0;
+    if (m > 0 && m % 12 === 0) { for (let j = 0; j < b.length; j++) total += b[j]; for (let j = 0; j < b.length; j++) b[j] = total * w[keys[j]]; }
+    total = 0; for (let j = 0; j < b.length; j++) total += b[j];
+    if (total <= perMonth) return { fail: m, end: 0 };
+    const keep = 1 - perMonth / total, i = at(m);
+    for (let j = 0; j < b.length; j++) b[j] *= keep * R.r[keys[j]][i];
+  }
+  let end = 0; for (let j = 0; j < b.length; j++) end += b[j];
+  return { fail: -1, end };
+}
+
+function wdStats(runs, months) {
+  const n = runs.length, fails = runs.filter(r => r.fail >= 0);
+  const ends = runs.map(r => r.end).sort((a, b) => a - b);
+  const q = p => ends[Math.min(n - 1, Math.floor(p * n))];
+  const within = yrs => runs.filter(r => r.fail >= 0 && r.fail < yrs * 12).length / n;
+  const failYears = fails.map(r => r.fail / 12).sort((a, b) => a - b);
+  return { n, failRate: fails.length / n, within, p10: q(0.1), p50: q(0.5), p90: q(0.9),
+    medianFailYears: failYears.length ? failYears[Math.floor(failYears.length / 2)] : null };
+}
+
+function wdUpdate() {
+  const balance = parseAmount($("wd-balance").value), yearly = parseAmount($("wd-amount").value);
+  const years = Number($("wd-years").value), real = $("wd-infl").checked, haircut = Number($("wd-future").value);
+  const w = {}; let sum = 0, bad = false;
+  ASSETS.forEach(a => { const v = Number($("wd-" + a.key).value); if (!isFinite(v) || v < 0) bad = true; w[a.key] = v / 100; sum += v; });
+  const mixOk = !bad && Math.abs(sum - 100) < 1e-9;
+  $("wd-total").textContent = "Total: " + (isFinite(sum) ? sum : 0) + "%";
+  $("wd-total").classList.toggle("bad", !mixOk);
+  if (balance > 0 && yearly > 0) $("wd-rate").textContent = `That's ${(yearly / balance * 100).toLocaleString("en-US", { maximumFractionDigits: 2 })}% of your starting balance, taken out as ${usd.format(yearly / 12)} a month.`;
+  else $("wd-rate").textContent = "";
+  let msg = "";
+  if (!(balance > 0)) msg = "Enter a starting balance greater than zero, like 1,000,000.";
+  else if (!(yearly > 0)) msg = "Enter a yearly withdrawal greater than zero, like 40,000.";
+  else if (!(Number.isInteger(years) && years >= 1 && years <= 60)) msg = "Enter a whole number of years from 1 to 60.";
+  else if (!mixOk) msg = "Your mix for this plan adds up to " + (isFinite(sum) ? sum : 0) + "%. Change it so it totals 100%.";
+  const err = $("wd-error");
+  $("wd-results").hidden = !!msg;
+  if (msg) { err.textContent = msg; err.hidden = false; return; }
+  err.hidden = true;
+
+  const keys = ASSETS.map(a => a.key).filter(k => w[k] > 0);
+  const R = wdReturns(keys, real, haircut);
+  const months = years * 12, perMonth = yearly / 12;
+  const dataLabel = `${label(MONTHS_YM(R.start))} through ${label(MONTHS_YM(R.start + R.M))}`;
+  const dataYears = Math.floor(R.M / 12);
+
+  // Simulated futures: random real 12-month stretches, stitched together.
+  const rand = mulberry32(20261117), blocks = new Int32Array(Math.ceil(months / 12));
+  const sims = [];
+  for (let s = 0; s < WD_SIMS; s++) {
+    for (let j = 0; j < blocks.length; j++) blocks[j] = Math.floor(rand() * (R.M - 11));
+    sims.push(wdRun(keys, w, R, m => blocks[(m / 12) | 0] + m % 12, months, balance, perMonth));
+  }
+  const S = wdStats(sims, months);
+
+  // Actual history: every start month with enough data after it.
+  const hist = [];
+  for (let s = 0; s + months <= R.M; s++) hist.push({ start: R.start + s, ...wdRun(keys, w, R, m => s + m, months, balance, perMonth) });
+  const H = hist.length ? wdStats(hist, months) : null;
+
+  const pctTxt = v => (v * 100).toLocaleString("en-US", { maximumFractionDigits: 1 }) + "%";
+  const yrsTxt = v => { const y = Math.round(v); return y + (y === 1 ? " year" : " years"); };
+  const mixTxt = ASSETS.filter(a => w[a.key] > 0).map(a => Math.round(w[a.key] * 100) + "% " + a.short).join(", ");
+  const dollars = real ? "today's dollars" : "future dollars, not adjusted for inflation";
+
+  let s = `Taking ${usd.format(yearly)} a year${real ? ", raised with inflation," : ""} from ${usd.format(balance)} in ${mixTxt}: `;
+  s += `in ${WD_SIMS.toLocaleString("en-US")} simulated ${years}-year futures, your money lasted in ${pctTxt(1 - S.failRate)} and ran out in ${pctTxt(S.failRate)}.`;
+  if (S.medianFailYears != null) s += ` When it ran out, it was typically after about ${yrsTxt(S.medianFailYears)}.`;
+  if (H) {
+    s += ` Across the ${H.n.toLocaleString("en-US")} actual ${years}-year periods in the data, it ran out in ${pctTxt(H.failRate)}`;
+    const failed = hist.filter(r => r.fail >= 0).sort((a, b) => a.fail - b.fail);
+    if (failed.length) s += `; the worst start, ${label(MONTHS_YM(failed[0].start))}, ran out after ${yrsTxt(failed[0].fail / 12)}.`;
+    else { const low = hist.reduce((a, b) => b.end < a.end ? b : a); s += `; the worst start, ${label(MONTHS_YM(low.start))}, still ended with ${usd.format(low.end)}.`; }
+  }
+  $("wd-summary").textContent = s;
+
+  const rows = [];
+  [10, 20].filter(y => y < years).forEach(y => rows.push([`Ran out within ${y} years`, pctTxt(S.within(y)), H ? pctTxt(H.within(y)) : "—"]));
+  rows.push([`Ran out within ${years} years`, pctTxt(S.failRate), H ? pctTxt(H.failRate) : "—"]);
+  const below = v => v > 0 ? "Below " + usd.format(v) : "$0 (ran out)";
+  rows.push(["Ending balance, worst 10% of outcomes", below(S.p10), H ? below(H.p10) : "—"]);
+  rows.push(["Ending balance, middle outcome", usd.format(S.p50), H ? usd.format(H.p50) : "—"]);
+  rows.push(["Ending balance, best 10% of outcomes", "Above " + usd.format(S.p90), H ? "Above " + usd.format(H.p90) : "—"]);
+  $("wd-rows").innerHTML = rows.map(([k, a, b]) => `<tr><th scope="row">${k}</th><td>${a}</td><td>${b}</td></tr>`).join("");
+  $("wd-caption").textContent = `Outcomes after ${years} years, in ${dollars}. A balance of $0 means the money ran out.`;
+
+  let note = `Built from monthly returns from ${dataLabel}`;
+  note += haircut ? `, lowered by ${haircut * 100} percentage point${haircut === 0.01 ? "" : "s"} a year.` : ".";
+  if (!H) note += ` That's only about ${dataYears} years of data, shorter than your ${years}-year plan, so there are no actual ${years}-year periods to replay, and every simulated future reuses that same short stretch. Treat these results with extra caution.`;
+  else if (H.n < 120) note += ` That leaves only ${H.n} actual ${years}-year periods, and they overlap heavily, so the actual history column rests on very little data.`;
+  $("wd-note").textContent = note;
+}
+
+let wdTimer = 0;
+const wdSoon = () => { clearTimeout(wdTimer); wdTimer = setTimeout(wdUpdate, 400); };
+["wd-balance", "wd-amount", "wd-years", ...ASSETS.map(a => "wd-" + a.key)].forEach(id => $(id).addEventListener("input", wdSoon));
+["wd-infl", "wd-future"].forEach(id => $(id).addEventListener("change", wdUpdate));
+["wd-balance", "wd-amount"].forEach(id => $(id).addEventListener("blur", () => { const n = parseAmount($(id).value); if (n > 0) $(id).value = n.toLocaleString("en-US", { maximumFractionDigits: 2 }); }));
+$("wd").addEventListener("submit", e => { e.preventDefault(); wdUpdate(); });
+wdUpdate();
 </script>
