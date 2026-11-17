@@ -379,11 +379,11 @@ fieldset.mix legend { font-weight: 600; font-size: .9rem; padding: 0 .35rem; }
     <ul>
       <li id="asof-note"></li>
       <li>S&amp;P 500 figures show a low-cost index fund charging 0.04% a year, the fee on Vanguard's 500 Index Admiral Shares (VFIAX), with dividends reinvested. That fee is applied to the whole history, including years before index funds existed.</li>
-      <li>Through <span id="splice"></span>, S&amp;P 500 returns come from Robert Shiller's monthly dataset going back to 1871. After that, they come from the SPY ETF's dividend-adjusted prices, with SPY's own fee added back.</li>
-      <li>Treasury bill figures show a money market fund charging 0.11% a year, the fee on Vanguard's Federal Money Market Fund (VMFXX). Returns come from Aswath Damodaran's annual 3-month T-bill returns from 1928 on, spread evenly across each year's months. A year that data doesn't cover yet uses the average 3-month T-bill yield so far that year.</li>
-      <li>Treasury bond figures show a bond fund charging 0.03% a year, the fee on Vanguard's Intermediate-Term Treasury ETF (VGIT), holding 10-year Treasury bonds with interest reinvested. Returns come from Aswath Damodaran's annual 10-year Treasury bond returns from 1928 on, spread evenly across each year's months. A year that data doesn't cover yet is calculated from month-end 10-year yields. VGIT itself holds somewhat shorter bonds, so its ups and downs are a bit smaller.</li>
-      <li>Gold figures show a gold fund charging 0.10% a year, the fee on SPDR Gold MiniShares (GLDM), using monthly gold prices. They start in January 1975, the first month Americans could legally own gold again after a ban that began in 1933. Before 1971 the government also fixed gold's price.</li>
-      <li>Bitcoin figures show a bitcoin fund charging 0.15% a year, the fee on the Grayscale Bitcoin Mini Trust (BTC), using monthly average bitcoin prices from January 2011 on. Bitcoin funds only launched in January 2024. Before that, buying bitcoin meant using an exchange, often with higher costs and real risks, such as the 2014 collapse of Mt. Gox, then the largest exchange. Early prices come from a small, thinly traded market.</li>
+      <li>S&amp;P 500 returns come from Robert Shiller's monthly dataset going back to 1871: each month's average price, with dividends reinvested. Dividends are reported a few months late, so the newest months reuse the latest reported dividend until the real figure comes out.</li>
+      <li>Treasury bill figures show a money market fund charging 0.11% a year, the fee on Vanguard's Federal Money Market Fund (VMFXX). Returns come from Aswath Damodaran's annual 3-month T-bill returns from 1928 on, spread evenly across each year's months. A year that data doesn't cover yet uses the average 3-month T-bill yield so far that year, from the US Treasury.</li>
+      <li>Treasury bond figures show a bond fund charging 0.03% a year, the fee on Vanguard's Intermediate-Term Treasury ETF (VGIT), holding 10-year Treasury bonds with interest reinvested. Returns come from Aswath Damodaran's annual 10-year Treasury bond returns from 1928 on, spread evenly across each year's months. A year that data doesn't cover yet is calculated from month-end 10-year yields published by the US Treasury. VGIT itself holds somewhat shorter bonds, so its ups and downs are a bit smaller.</li>
+      <li>Gold figures show a gold fund charging 0.10% a year, the fee on SPDR Gold MiniShares (GLDM), using the World Bank's monthly gold prices. They start in January 1975, the first month Americans could legally own gold again after a ban that began in 1933. Before 1971 the government also fixed gold's price.</li>
+      <li>Bitcoin figures show a bitcoin fund charging 0.15% a year, the fee on the Grayscale Bitcoin Mini Trust (BTC), using monthly average bitcoin prices from January 2011 on, from Coin Metrics' free community data. Bitcoin funds only launched in January 2024. Before that, buying bitcoin meant using an exchange, often with higher costs and real risks, such as the 2014 collapse of Mt. Gox, then the largest exchange. Early prices come from a small, thinly traded market.</li>
       <li>Best and worst years run from each January's average price to the next January's, so they can differ from the calendar-year returns usually reported, which use December 31 closing prices.</li>
       <li>Your mix splits every deposit across the funds by your percentages. With yearly rebalancing, the whole account is reset to those percentages every 12 months from your start month. Without it, each fund grows on its own and the mix drifts.</li>
       <li>Inflation adjustment uses the Consumer Price Index (CPI-U) from Robert Shiller's dataset and the Bureau of Labor Statistics. "Today's dollars" means <span id="cpi-month"></span> dollars, the latest inflation data. The October 2025 figure was never published because of the government shutdown, so it is estimated. "Per year" figures in today's dollars are returns after inflation.</li>
@@ -396,8 +396,8 @@ fieldset.mix legend { font-weight: 600; font-size: .9rem; padding: 0 .35rem; }
 </main>
 
 <script type="module">
-// The prices built into this page. On the website they're always the newest, because the page is rebuilt every weekday.
-// The App Store app also downloads data.json, which the same daily update publishes, and uses whichever copy is newest.
+// The prices built into this page. On the website they're always the newest, because the page is rebuilt whenever new data comes out.
+// The App Store app also downloads data.json, which the same update publishes, and uses whichever copy is newest.
 const BUILT_IN = __DATA__;
 const DATA_URL = "https://christopherabel3000-creator.github.io/Historical-Investment-Calculator/data.json";
 const DATA_KEY = "hic-data";
@@ -424,9 +424,9 @@ function toIndex(ym) { const [y, m] = ym.split("-").map(Number); return y * 12 +
 function label(ym) { const [y, m] = ym.split("-").map(Number); return MONTHS[m - 1] + " " + y; }
 function MONTHS_YM(idx) { return Math.floor(idx / 12) + "-" + String(idx % 12 + 1).padStart(2, "0"); }
 const asOfIdx = toIndex(DATA.lastMonth);
-const asOfDate = new Date(DATA.asOfDate + "T12:00:00");
-const asOfLabel = asOfDate.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
-const finalOffset = (asOfDate - new Date(Math.floor(asOfIdx / 12), asOfIdx % 12, 15)) / (30.44 * 864e5);
+// The data is monthly: each fund's latest value is its average price in the latest full month.
+const asOfLabel = label(DATA.lastMonth);
+const finalOffset = 0;
 const series = {
   sp: { ...DATA.sp, s: toIndex(DATA.sp.start) },
   tb: { ...DATA.tb, s: toIndex(DATA.tb.start) },
@@ -455,11 +455,10 @@ const $ = id => document.getElementById(id);
 const monthSel = $("month"), yearSel = $("year"), endYearSel = $("end-year"), endMonthSel = $("end-month"), amountIn = $("amount");
 MONTHS.forEach((m, i) => { monthSel.add(new Option(m, i)); endMonthSel.add(new Option(m, i)); });
 const firstYear = Number(DATA.sp.start.slice(0, 4)), lastYear = Number(DATA.lastMonth.slice(0, 4));
-endYearSel.add(new Option("Today (" + asOfLabel + ")", "now"));
+endYearSel.add(new Option("Latest (" + asOfLabel + ")", "now"));
 for (let y = lastYear; y >= firstYear; y--) { yearSel.add(new Option(y, y)); endYearSel.add(new Option(y, y)); }
 monthSel.value = "0"; yearSel.value = "1990"; endYearSel.value = "now"; endMonthSel.value = "11";
-$("asof-note").textContent = "Values are as of the market close on " + asOfLabel + ", unless you pick an earlier end date. Each investment is assumed to buy in at that month's average price.";
-$("splice").textContent = label(DATA.spliceMonth);
+$("asof-note").textContent = "Values run through " + asOfLabel + ", the latest full month in the data, unless you pick an earlier end date. Each investment buys in, and is valued, at that month's average price. The data is updated each month, once every source has published it.";
 $("cpi-month").textContent = cpiNowLabel;
 
 const DEFAULTS = { once: 10000, monthly: 500, yearly: 6000 };
@@ -640,7 +639,7 @@ function update() {
   let msg = "";
   if (!(amount > 0)) msg = "Enter an amount greater than zero, like " + DEFAULTS[f].toLocaleString("en-US") + ".";
   else if (startIdx > asOfIdx) msg = "Pick a start month no later than " + label(DATA.lastMonth) + ", the latest full month in the data.";
-  else if (!end.now && end.idx > asOfIdx) msg = "Pick an end month no later than " + label(DATA.lastMonth) + ", or choose Today.";
+  else if (!end.now && end.idx > asOfIdx) msg = "Pick an end month no later than " + label(DATA.lastMonth) + ", or choose Latest.";
   else if (end.idx < startIdx) msg = "Pick an end date on or after the start date.";
   if (msg) { err.textContent = msg; err.hidden = false; return; }
   err.hidden = true;
@@ -731,8 +730,7 @@ if (IN_APP) {
     const fresh = await download(8000);
     if (newest(DATA, fresh) !== fresh) return;
     try { localStorage.setItem(DATA_KEY, JSON.stringify(fresh)); } catch (e) {}
-    const day = new Date(fresh.asOfDate + "T12:00:00").toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
-    $("fresh-text").textContent = `Newer prices are ready, through ${day}.`;
+    $("fresh-text").textContent = `Newer prices are ready, through ${label(fresh.lastMonth)}.`;
     $("fresh").hidden = false;
   });
   $("fresh-btn").addEventListener("click", () => location.reload());

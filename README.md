@@ -14,23 +14,23 @@ The page is a single file, `index.html`, with all data built in. It is designed 
 
 ## Data sources
 
-- **S&P 500:** Robert Shiller's monthly price and dividend data (via the [datasets/s-and-p-500](https://github.com/datasets/s-and-p-500) mirror) through June 2023, then SPY dividend-adjusted prices from Financial Modeling Prep, with SPY's fee added back.
-- **Bonds and T-bills:** Aswath Damodaran's [annual historical returns](https://pages.stern.nyu.edu/~adamodar/New_Home_Page/datafile/histretSP.html) spread evenly across each year's months. For a year that data doesn't cover yet, bonds use month-end 10-year Treasury yields and T-bills use the average 3-month T-bill yield so far that year.
-- **Gold:** Monthly prices from [datasets/gold-prices](https://github.com/datasets/gold-prices), with recent daily prices from Financial Modeling Prep.
-- **Bitcoin:** Daily prices from Financial Modeling Prep, averaged by month. Bitcoin funds only launched in 2024; earlier prices come from a small, thinly traded market.
-- **Inflation:** CPI-U from Robert Shiller's dataset through July 2023, then Bureau of Labor Statistics figures. October 2025 was never published and is estimated.
+All the data is free for public use, and none of it needs an API key.
 
-Results ignore taxes. This is a historical illustration, not investment advice.
+- **S&P 500:** Robert Shiller's monthly prices and dividends ([shillerdata.com](https://shillerdata.com/), `ie_data.xls`) back to 1871. Dividends are reported a few months late, so the newest months reuse the latest reported dividend until the real one comes out.
+- **Bonds and T-bills:** Aswath Damodaran's [annual historical returns](https://pages.stern.nyu.edu/~adamodar/New_Home_Page/datafile/histretSP.html) spread evenly across each year's months. For a year that data doesn't cover yet, bonds use month-end 10-year Treasury yields and T-bills use the average 3-month T-bill yield so far that year, both from the [US Treasury](https://home.treasury.gov/resource-center/data-chart-center/interest-rates).
+- **Gold:** The World Bank's monthly prices ([Pink Sheet](https://www.worldbank.org/en/research/commodity-markets), CC BY 4.0), via the [datasets/gold-prices](https://github.com/datasets/gold-prices) mirror.
+- **Bitcoin:** Daily prices from [Coin Metrics](https://coinmetrics.io/) community data (CC BY-NC 4.0), averaged by month. The license is non-commercial: if the app or site ever charges money or shows ads, bitcoin needs a different source. Bitcoin funds only launched in 2024; earlier prices come from a small, thinly traded market.
+- **Inflation:** CPI-U from Robert Shiller's dataset through July 2023, then Bureau of Labor Statistics figures (with FRED as a backup). October 2025 was never published and is estimated.
+
+Everything is monthly, so the calculator runs through the latest full month that every source covers. Results ignore taxes. This is a historical illustration, not investment advice.
 
 ## Updating the data
 
-The data updates itself. A GitHub Action (`.github/workflows/update-data.yml`) runs every weekday evening after the market closes: it fetches the latest prices, rebuilds the page and commits the result. On days with no new prices, it changes nothing. You can also start it by hand from the Actions tab with "Run workflow".
-
-It needs a Financial Modeling Prep API key saved as a repository secret named `FMP_API_KEY` (Settings, then Secrets and variables, then Actions). Gold's monthly history comes from the datasets/gold-prices repo and inflation from FRED (CPIAUCNS); neither needs a key.
+The data updates itself. A GitHub Action (`.github/workflows/update-data.yml`) runs every weekday evening: it checks each source, rebuilds the page and commits the result. The sources publish monthly, so most days it finds nothing new and changes nothing. If one source can't be reached, its saved copy is kept and the rest still update. You can also start it by hand from the Actions tab with "Run workflow".
 
 To run it yourself, from the repo root:
 
-1. `FMP_API_KEY=your-key python3 tools/update.py`
+1. `pip install xlrd` (to read Shiller's spreadsheet), then `python3 tools/update.py`
 2. From the `tools` folder, run `build_data.py` (see the usage line in `assemble.py`), then `python3 assemble.py`.
 3. Commit the changes.
 
@@ -40,7 +40,7 @@ Once a year, after Aswath Damodaran publishes the previous year's returns (usual
 
 The App Store version, "What If I'd Invested" (`com.playbyear.whatifinvested`), wraps the same page with [Capacitor](https://capacitorjs.com). `scripts/build-www.js` copies `index.html`, `privacy.html`, `support.html`, `fonts/` and `icons/` into `www/`, and `npx cap sync ios` puts them in the Xcode project in `ios/`.
 
-The page has prices built in, but the app also downloads `data.json` from this site each time it opens, and keeps the newest copy for offline use. `assemble.py` writes `data.json` alongside `index.html`, so the daily update publishes both. If new prices arrive while the app is open, it offers to switch to them. On the website nothing changes: the page is rebuilt every weekday anyway.
+The page has prices built in, but the app also downloads `data.json` from this site each time it opens, and keeps the newest copy for offline use. `assemble.py` writes `data.json` alongside `index.html`, so each data update publishes both. If new prices arrive while the app is open, it offers to switch to them. On the website nothing changes: the page is rebuilt whenever new data comes out anyway.
 
 There's no Mac needed: `.github/workflows/ios.yml` builds the app on GitHub's Macs. Every push that touches the calculator checks that it still builds; running the workflow by hand (Actions, iPhone app, Run workflow) signs it and sends it to TestFlight. Signing needs four repo secrets, listed at the top of the workflow.
 

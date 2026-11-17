@@ -2,8 +2,8 @@ name: Update data
 
 on:
   schedule:
-    # Weekdays at 23:17 UTC: 6:17 PM Eastern in winter, 7:17 PM in summer,
-    # after the market closes and the day's prices are posted.
+    # Weekdays at 23:17 UTC (6:17 PM Eastern in winter). The data is monthly, so most runs find
+    # nothing new; checking every weekday picks up each source's monthly release within a day.
     - cron: "17 23 * * 1-5"
   workflow_dispatch: # adds a "Run workflow" button on the Actions tab
 
@@ -25,17 +25,16 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Fetch the latest prices
-        env:
-          FMP_API_KEY: ${{ secrets.FMP_API_KEY }}
-        run: python tools/update.py
+      - name: Fetch the latest data
+        run: |
+          pip install xlrd==2.0.1
+          python tools/update.py
 
       - name: Rebuild the page
         working-directory: tools
         run: |
-          python build_data.py data/sp.csv data/tbills.csv data/spy_adj.json returns.json \
-            data/tbonds.csv data/yields_month_end.csv data/gold_monthly.csv data/gold_fmp_recent.csv \
-            data/cpi_recent.csv data/btc_monthly.csv data/btc_last.txt
+          python build_data.py data/sp.csv data/tbills.csv returns.json data/tbonds.csv \
+            data/yields_month_end.csv data/gold_monthly.csv data/cpi_recent.csv data/btc_monthly.csv
           python assemble.py
 
       - name: Commit and push if anything changed
@@ -44,9 +43,9 @@ jobs:
             echo "No new data today."
             exit 0
           fi
-          as_of=$(python -c 'import json; print(json.load(open("tools/returns.json"))["asOfDate"])')
+          as_of=$(python -c 'import json; print(json.load(open("tools/returns.json"))["lastMonth"])')
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
-          git commit -m "Update data through the $as_of close"
+          git commit -m "Update data (through $as_of)"
           git push

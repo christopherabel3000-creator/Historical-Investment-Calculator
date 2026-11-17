@@ -2,10 +2,6 @@
 
 Everything to paste into App Store Connect for version 1.0. Each section shows Apple's character limit.
 
-## Before submitting: the data license
-
-The S&P 500 prices since mid-2023, recent gold and bitcoin prices, and recent Treasury yields come from Financial Modeling Prep (FMP). FMP's terms require a written data display agreement before FMP-sourced numbers are shown publicly, on a website or in an app, free or paid. Get that agreement from FMP (or switch those prices to another source) before submitting. The "Content rights" and reviewer note 6 answers below assume you have it.
-
 ## Name (30 characters at most)
 
 What If I'd Invested
@@ -40,8 +36,8 @@ See each fund's best and worst year in your time range, and how much your own ac
 WILL MY MONEY LAST?
 Plan your retirement withdrawals. Enter a balance and how much you'll take out, and see how often the money would have run out, replayed across every real stretch of history and 10,000 simulated futures. Or work backward: enter the monthly income you want, and see how much you'd need to save for it to last.
 
-UPDATED EVERY WEEKDAY
-Prices are updated after each market close. The app works offline with the latest prices it has.
+UPDATED EVERY MONTH
+New data is added each month. The app works offline with the latest prices it has.
 
 MADE FOR VOICEOVER
 Built by a developer who uses a screen reader. Every result is written out as a sentence, every chart has a matching table, and every control is labeled.
@@ -82,7 +78,7 @@ They're taken by `tools/screenshots.py` (see the README).
 
 ## Content rights
 
-Yes, the app contains third-party content: historical market data. Robert Shiller's and Aswath Damodaran's datasets are published free for public use, inflation data comes from the US government (FRED and the Bureau of Labor Statistics), and gold's monthly history comes from an openly licensed dataset. Recent prices come from Financial Modeling Prep, under a data display agreement (see the top of this file). Answer that you have the rights only once that agreement is in place.
+Yes, the app contains third-party content: historical market data, all free for public use. Robert Shiller's and Aswath Damodaran's datasets are published free by the economists themselves. Treasury yields and inflation come from the US government (US Treasury and Bureau of Labor Statistics). Gold prices are the World Bank's (CC BY 4.0) and bitcoin prices are Coin Metrics' community data (CC BY-NC 4.0, fine for a free app with no ads); both are credited in the app. Answer that you have the necessary rights.
 
 ## Age rating
 
@@ -124,13 +120,13 @@ A historical investment returns calculator. Users enter an amount, a start date 
 No account, login or sample files are needed. The calculator opens with an example already filled in ($10,000 invested in January 1990) and updates as you change any field. Scroll down to "Will my money last?" and choose "How much I need to save" to see how much savings a monthly income would need.
 
 4. EXTERNAL SERVICES
-Only one: when the app opens, it downloads the latest price file from the calculator's own website on GitHub Pages, so prices stay current. Nothing about the user is sent. There are no authentication services, payment processors, ad networks, analytics or AI services. Every calculation runs on the device, and the app works offline with the last prices it downloaded.
+Only one: when the app opens, it downloads the latest price file from the calculator's own website on GitHub Pages, so prices stay current as new monthly data comes out. Nothing about the user is sent. There are no authentication services, payment processors, ad networks, analytics or AI services. Every calculation runs on the device, and the app works offline with the last prices it downloaded.
 
 5. REGIONS
 The app works the same in every region. It is in English only and uses US market data in US dollars. There is no region-specific content or behavior.
 
 6. REGULATED INDUSTRIES AND THIRD-PARTY MATERIAL
-The app does not provide financial services. It does not hold, move or invest money, connect to any bank or brokerage, recommend specific investments, or collect any financial information from users. It is an educational calculator based on published historical data, and it says on screen that it is not investment advice. The historical data comes from public academic and government sources (Robert Shiller, Aswath Damodaran, FRED and the Bureau of Labor Statistics) and from Financial Modeling Prep under a data display agreement. The fonts are used under the SIL Open Font License.
+The app does not provide financial services. It does not hold, move or invest money, connect to any bank or brokerage, recommend specific investments, or collect any financial information from users. It is an educational calculator based on published historical data, and it says on screen that it is not investment advice. The historical data comes from public academic, government and open-data sources: Robert Shiller, Aswath Damodaran, the US Treasury, the Bureau of Labor Statistics, the World Bank and Coin Metrics, each credited in the app. The fonts are used under the SIL Open Font License.
 
 ## Price and availability
 

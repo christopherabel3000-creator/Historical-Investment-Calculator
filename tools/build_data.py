@@ -1,160 +1,138 @@
-"""Build monthly growth indexes for the calculator.
+"""Build monthly growth indexes for the calculator from the files in tools/data.
 
-S&P 500 (as a fund charging 0.04%/yr, like Vanguard's VFIAX):
-  - Through the last month Shiller reports dividends: Shiller monthly average
-    prices + dividends reinvested.
-  - After that: SPY dividend-adjusted closes (monthly averages), with SPY's
-    0.0945%/yr fee added back so the series tracks the index itself.
-  - 0.04%/yr fee taken out of every month.
-  - Final value uses the latest SPY close.
-T-bills: Damodaran annual 3-month T-bill returns 1928-2025, spread evenly
-  across each year's months; later years use tbill_estimates.csv.
+Usage (from the tools folder):
+  python3 build_data.py data/sp.csv data/tbills.csv returns.json data/tbonds.csv \
+      data/yields_month_end.csv data/gold_monthly.csv data/cpi_recent.csv data/btc_monthly.csv
+
+Everything is monthly. The data runs through the latest full month that the S&P 500, gold, bitcoin and
+bond data all cover, and each fund's value in that month is its final value.
+
+S&P 500 (as a fund charging 0.04%/yr, like Vanguard's VFIAX): Shiller monthly average prices with
+  dividends reinvested. Shiller reports dividends a few months late; until a month's dividend is
+  published, it reuses the latest reported one.
+T-bills: Damodaran annual 3-month T-bill returns, spread evenly across each year's months; a year that
+  data doesn't cover yet uses tbill_estimates.csv.
+Bonds: Damodaran annual 10-year Treasury returns, spread evenly; later years are calculated from
+  month-end 10-year yields.
+Gold: World Bank monthly prices from 1975. Bitcoin: Coin Metrics monthly averages from 2011.
+Each fund's fee is taken out of every month.
 """
-import csv, json, sys, datetime
-from collections import defaultdict
+import csv, json, sys
 from pathlib import Path
 
-sp_path, tb_path, spy_path, out_path, bond_path, yields_path, gold_path, gold_recent_path, cpi_recent_path, btc_monthly_path, btc_last_path = sys.argv[1:12]
-FUND_FEE = 0.0004
-SPY_FEE = 0.000945
+sp_path, tb_path, out_path, bond_path, yields_path, gold_path, cpi_recent_path, btc_monthly_path = sys.argv[1:9]
+FUND_FEE = 0.0004  # Vanguard 500 Index Admiral (VFIAX)
 MM_FEE = 0.0011  # Vanguard Federal Money Market (VMFXX)
 BOND_FEE = 0.0003  # Vanguard Intermediate-Term Treasury ETF (VGIT)
 GOLD_FEE = 0.0010  # SPDR Gold MiniShares (GLDM)
 BTC_FEE = 0.0015  # Grayscale Bitcoin Mini Trust (BTC)
-fee_m = (1 - FUND_FEE) ** (1 / 12)
 
-# Shiller rows up to and including the last month with a reported dividend
-rows = []
-with open(sp_path) as f:
-    for r in csv.DictReader(f):
-        rows.append((r["Date"][:7], float(r["SP500"]), float(r["Dividend"])))
-last_div = max(i for i, r in enumerate(rows) if r[2] > 0)
-rows = rows[: last_div + 1]
-splice_month = rows[-1][0]
 
-months, levels = [rows[0][0]], [1.0]
-level = 1.0
-for i in range(1, len(rows)):
-    m, p, d = rows[i]
-    level *= (p + d / 12) / rows[i - 1][1] * fee_m
-    months.append(m)
-    levels.append(level)
+def monthly_fee(fee):
+    return (1 - fee) ** (1 / 12)
 
-# SPY dividend-adjusted closes
-spy = sorted(json.load(open(spy_path)), key=lambda r: r["date"])
-by_month = defaultdict(list)
-for r in spy:
-    by_month[r["date"][:7]].append(r["adjClose"])
-avg = {m: sum(v) / len(v) for m, v in by_month.items()}
-last = spy[-1]
-last_date = last["date"]
-last_month = last_date[:7]
-spy_months = sorted(m for m in avg if m > splice_month and m < last_month)  # full months only
-prev = splice_month
-for m in spy_months:
-    level *= avg[m] / avg[prev] * (1 + SPY_FEE) ** (1 / 12) * fee_m
-    months.append(m)
-    levels.append(level)
-    prev = m
 
-# Final value: latest close relative to last full month's average
-d_last = datetime.date.fromisoformat(last_date)
-mid_prev = datetime.date(int(prev[:4]), int(prev[5:]), 15)
-frac_years = (d_last - mid_prev).days / 365.25
-sp_final = level * last["adjClose"] / avg[prev] * ((1 + SPY_FEE) * (1 - FUND_FEE)) ** frac_years
+def pairs(path):
+    out = {}
+    for line in open(path):
+        if line.strip() and not line.startswith("Date"):
+            k, v = line.strip().split(",")[:2]
+            out[k[:7]] = v
+    return out
 
-# T-bills
-tb_annual = {}
-with open(tb_path) as f:
-    for line in f:
-        if line.strip():
-            y, r = line.strip().split(",")
-            tb_annual[int(y)] = float(r.rstrip("%")) / 100
-# Years the annual data doesn't cover yet use an estimate: the average 3-month T-bill
-# yield so far that year (tbill_estimates.csv, kept current by update.py).
+
+def prev_month(m):
+    y, mo = int(m[:4]), int(m[5:])
+    return f"{y - 1}-12" if mo == 1 else f"{y}-{mo - 1:02d}"
+
+
+# ---- Inputs ----
+shiller = [(r["Date"][:7], float(r["SP500"]), float(r["Dividend"]), float(r["Consumer Price Index"]))
+           for r in csv.DictReader(open(sp_path))]
+gold = {k: float(v) for k, v in pairs(gold_path).items()}
+btc = {k: float(v) for k, v in pairs(btc_monthly_path).items()}
+yields = {k: float(v) / 100 for k, v in pairs(yields_path).items()}
+annual = lambda path: {int(k): float(v.rstrip("%")) / 100 for k, v in pairs(path).items()}
+bond_annual = annual(bond_path)
+tb_annual = annual(tb_path)
 est_path = Path(tb_path).with_name("tbill_estimates.csv")
 if est_path.exists():
-    for line in open(est_path):
-        if line.strip():
-            y, r = line.strip().split(",")
-            tb_annual.setdefault(int(y), float(r.rstrip("%")) / 100)
-_last_year = int(months[-1][:4])
-for _y in range(min(tb_annual), max(_last_year, datetime.date.fromisoformat(last_date).year) + 1):
-    if _y not in tb_annual:  # no estimate yet: carry the latest rate forward
-        tb_annual[_y] = tb_annual[_y - 1]
-tb_levels, t = [], 1.0
+    for y, r in annual(est_path).items():
+        tb_annual.setdefault(y, r)
+
+# The last month every series covers
+last_month = min(shiller[-1][0], max(gold), max(btc), max(yields))
+months = [r[0] for r in shiller if r[0] <= last_month]
+print("Data runs through", last_month)
+
+# ---- S&P 500 ----
+fee_m = monthly_fee(FUND_FEE)
+levels, level, div = [1.0], 1.0, shiller[0][2]
+last_div_month = max(r[0] for r in shiller if r[2] > 0)
+for i in range(1, len(months)):
+    m, p, d, _ = shiller[i]
+    div = d if d > 0 else div
+    level *= (p + div / 12) / shiller[i - 1][1] * fee_m
+    levels.append(level)
+
+# ---- T-bills (money market) ----
+for y in range(min(tb_annual), int(last_month[:4]) + 1):
+    if y not in tb_annual:  # no estimate yet: carry the latest rate forward
+        tb_annual[y] = tb_annual[y - 1]
 tb_start = "1928-01"
+tb_levels, t = [], 1.0
 for m in months:
     if m < tb_start:
         continue
+    if m > tb_start:
+        t *= ((1 + tb_annual[int(prev_month(m)[:4])]) * (1 - MM_FEE)) ** (1 / 12)
     tb_levels.append(t)
-    t *= ((1 + tb_annual[int(m[:4])]) * (1 - MM_FEE)) ** (1 / 12)
-# t is now the level at the start of the month after `prev`; carry on to last_date
-start_next = datetime.date(int(prev[:4]) + (prev[5:] == "12"), int(prev[5:]) % 12 + 1, 1)
-tb_final = t * ((1 + tb_annual[d_last.year]) * (1 - MM_FEE)) ** ((d_last - start_next).days / 365.25)
 
 # ---- 10-year Treasury bonds ----
-bond_annual = {}
-for line in open(bond_path):
-    if line.strip():
-        y, r = line.strip().split(",")
-        bond_annual[int(y)] = float(r.rstrip("%")) / 100
-yields = {}
-for line in open(yields_path):
-    if line.strip():
-        k, v = line.strip().split(",")
-        yields[k] = float(v) / 100
 def bprice(c, y, n): return c / y * (1 - (1 + y) ** -n) + (1 + y) ** -n
 def bret(y0, y1, dt): return y0 * dt + bprice(y0, y1, 10 - dt) - 1
-bond_fee_m = (1 - BOND_FEE) ** (1 / 12)
-bd_levels, bl = [], 1.0
+bond_fee_m = monthly_fee(BOND_FEE)
 bd_start = "1928-01"
+bd_levels, bl = [], 1.0
 for m in months:
     if m < bd_start:
         continue
+    if m > bd_start:
+        pm = prev_month(m)
+        y = int(pm[:4])
+        if y in bond_annual:
+            bl *= (1 + bond_annual[y]) ** (1 / 12) * bond_fee_m
+        else:  # a year the annual data doesn't cover yet: month-end yields
+            bl *= (1 + bret(yields[prev_month(pm)], yields[pm], 1 / 12)) * bond_fee_m
     bd_levels.append(bl)
-    y = int(m[:4])
-    if y in bond_annual:
-        bl *= (1 + bond_annual[y]) ** (1 / 12) * bond_fee_m
-    else:  # 2026: month-end yields
-        pm = f"{y-1}-12" if m.endswith("-01") else f"{y}-{int(m[5:])-1:02d}"
-        bl *= (1 + bret(yields[pm], yields[m], 1 / 12)) * bond_fee_m
-part = (d_last - datetime.date(d_last.year, d_last.month, 1)).days / 365.25 + 1/365.25
-bd_final = bl * (1 + bret(yields[prev], yields[last_date], part)) * (1 - BOND_FEE) ** part
 
 # ---- Gold ----
-gold = {}
-for r in csv.DictReader(open(gold_path)):
-    gold[r["Date"][:7]] = float(r["Price"])
-recent = {}
-for line in open(gold_recent_path):
-    k, v = line.strip().split(",")
-    p = [float(x) for x in v.split()]
-    recent[k] = sum(p) / len(p)
 gd_start = "1975-01"
-gold_fee_m = (1 - GOLD_FEE) ** (1 / 12)
-gd_levels, gl = [], 1.0
+gold_fee_m = monthly_fee(GOLD_FEE)
 gm = [m for m in months if m >= gd_start]
+gd_levels, gl = [], 1.0
 for i, m in enumerate(gm):
     if i > 0:
         gl *= gold[m] / gold[gm[i - 1]] * gold_fee_m
     gd_levels.append(gl)
-gd_final = gl * recent[last_date] / recent[prev] * (1 - GOLD_FEE) ** frac_years
+
+# ---- Bitcoin ----
+bc_start = "2011-01"
+btc_fee_m = monthly_fee(BTC_FEE)
+cm = [m for m in months if m >= bc_start]
+bc_levels, cl = [], 1.0
+for i, m in enumerate(cm):
+    if i > 0:
+        cl *= btc[m] / btc[cm[i - 1]] * btc_fee_m
+    bc_levels.append(cl)
 
 # ---- CPI (inflation) ----
 # Shiller CPI (CPI-U, not seasonally adjusted) through 2023-07, then BLS CPI-U.
-# 2025-10 was never published (government shutdown) and is interpolated.
-cpi = {}
-for r in csv.DictReader(open(sp_path)):
-    v = float(r["Consumer Price Index"])
-    if v > 0 and r["Date"][:7] <= "2023-07":
-        cpi[r["Date"][:7]] = v
-for line in open(cpi_recent_path):
-    if line.strip():
-        k, v = line.strip().split(",")
-        cpi[k] = float(v)
-# The newest month or two of CPI may not be published yet; the page uses the latest
-# available. Stop at the first missing month so the series never has a gap.
+# 2025-10 was never published (government shutdown) and is interpolated in cpi_recent.csv.
+cpi = {m: c for m, _, _, c in shiller if c > 0 and m <= "2023-07"}
+cpi.update({k: float(v) for k, v in pairs(cpi_recent_path).items()})
+# The newest month or two of CPI may not be published yet; the page uses the latest available.
+# Stop at the first missing month so the series never has a gap.
 cpi_levels = []
 for m in months:
     if m not in cpi:
@@ -163,57 +141,25 @@ for m in months:
 if len(months) - len(cpi_levels) > 3:
     raise SystemExit(f"Inflation data stops at {months[len(cpi_levels) - 1]}; check cpi_recent.csv.")
 
-# ---- Bitcoin ----
-btc = {}
-for line in open(btc_monthly_path):
-    if line.strip():
-        k, v = line.strip().split(",")
-        btc[k] = float(v)
-bl_date, bl_price = open(btc_last_path).read().strip().split(",")
-bc_start = "2011-01"
-btc_fee_m = (1 - BTC_FEE) ** (1 / 12)
-bc_levels, cl = [], 1.0
-cm = [m for m in months if m >= bc_start]
-for i, m in enumerate(cm):
-    if i > 0:
-        cl *= btc[m] / btc[cm[i - 1]] * btc_fee_m
-    bc_levels.append(cl)
-bc_final = cl * float(bl_price) / btc[prev] * (1 - BTC_FEE) ** frac_years
-
 sig = lambda x: float(f"{x:.7g}")
+ser = lambda start, lv: {"start": start, "levels": [sig(v) for v in lv], "final": sig(lv[-1])}
 out = {
-    "lastMonth": months[-1],
-    "asOfDate": last_date,
-    "spliceMonth": splice_month,
+    "lastMonth": last_month,
+    "asOfDate": last_month + "-15",  # monthly data: values are the month's average price
     "fee": FUND_FEE,
-    "sp": {"start": months[0], "levels": [sig(v) for v in levels], "final": sig(sp_final)},
-    "tb": {"start": tb_start, "levels": [sig(v) for v in tb_levels], "final": sig(tb_final)},
-    "bd": {"start": bd_start, "levels": [sig(v) for v in bd_levels], "final": sig(bd_final)},
-    "bc": {"start": bc_start, "levels": [sig(v) for v in bc_levels], "final": sig(bc_final)},
+    "sp": ser(months[0], levels),
+    "tb": ser(tb_start, tb_levels),
+    "bd": ser(bd_start, bd_levels),
+    "bc": ser(bc_start, bc_levels),
     "cpi": {"start": months[0], "levels": [sig(v) for v in cpi_levels]},
-    "gd": {"start": gd_start, "levels": [sig(v) for v in gd_levels], "final": sig(gd_final)},
+    "gd": ser(gd_start, gd_levels),
 }
 json.dump(out, open(out_path, "w"), separators=(",", ":"))
 
-i90 = months.index("1990-01")
-print("splice after", splice_month, "| last full month", months[-1], "| as of", last_date)
-print("S&P $10k Jan 1990 ->", round(10000 * sp_final / levels[i90]))
-print("TB  $10k Jan 1990 ->", round(10000 * tb_final / tb_levels[months.index("1990-01") - months.index(tb_start)]))
-i28 = months.index("1928-01")
-yrs = (d_last - datetime.date(1928, 1, 15)).days / 365.25
-print("S&P CAGR since 1928: %.2f%%" % (100 * ((sp_final / levels[i28]) ** (1 / yrs) - 1)))
-for y in ("2023-07", "2024-01", "2025-01"):
-    i = months.index(y)
-    print(y, "-> 12mo growth %.2f%%" % (100 * (levels[i + 12] / levels[i] - 1)) if i + 12 < len(levels) else "")
-
-i90b = months.index("1990-01") - months.index(bd_start)
-print("Bonds $10k Jan 1990 ->", round(10000 * bd_final / bd_levels[i90b]))
-i90g = months.index("1990-01") - months.index(gd_start)
-print("Gold  $10k Jan 1990 ->", round(10000 * gd_final / gd_levels[i90g]))
-yb=(d_last - datetime.date(1928,1,15)).days/365.25
-print("Bonds CAGR since 1928: %.2f%%" % (100*((bd_final/bd_levels[0])**(1/yb)-1)))
-yg=(d_last - datetime.date(1975,1,15)).days/365.25
-print("Gold CAGR since 1975: %.2f%%" % (100*((gd_final/gd_levels[0])**(1/yg)-1)))
-i26=months.index("2026-01")-months.index(bd_start)
-print("Bonds 2026 YTD: %.2f%%" % (100*(bd_final/bd_levels[i26]-1)))
-print("BTC $10k Jan 2015 ->", round(10000 * bc_final / bc_levels[months.index("2015-01") - months.index(bc_start)]))
+at = lambda lv, start, m: lv[months.index(m) - months.index(start)]
+print("S&P dividends reported through", last_div_month)
+print("S&P   $10k Jan 1990 ->", round(10000 * levels[-1] / at(levels, months[0], "1990-01")))
+print("Bonds $10k Jan 1990 ->", round(10000 * bd_levels[-1] / at(bd_levels, bd_start, "1990-01")))
+print("T-bills $10k Jan 1990 ->", round(10000 * tb_levels[-1] / at(tb_levels, tb_start, "1990-01")))
+print("Gold  $10k Jan 1990 ->", round(10000 * gd_levels[-1] / at(gd_levels, gd_start, "1990-01")))
+print("BTC   $10k Jan 2015 ->", round(10000 * bc_levels[-1] / at(bc_levels, bc_start, "2015-01")))

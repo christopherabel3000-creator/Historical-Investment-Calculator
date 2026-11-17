@@ -1,8 +1,8 @@
 """Build index.html from template.html and returns.json.
 
 Usage (from the tools folder):
-  python3 build_data.py data/sp.csv data/tbills.csv data/spy_adj.json returns.json \
-      data/tbonds.csv data/yields_month_end.csv data/gold_monthly.csv data/gold_fmp_recent.csv data/cpi_recent.csv data/btc_monthly.csv data/btc_last.txt
+  python3 build_data.py data/sp.csv data/tbills.csv returns.json data/tbonds.csv \
+      data/yields_month_end.csv data/gold_monthly.csv data/cpi_recent.csv data/btc_monthly.csv
   python3 assemble.py
 """
 from pathlib import Path
