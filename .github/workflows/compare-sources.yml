@@ -1,0 +1,14 @@
+name: Compare data sources (one-off)
+on:
+  push:
+    branches: [compare-sources]
+jobs:
+  compare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: pip install xlrd openpyxl
+      - run: python tools/compare_sources.py && cat compare_report.md >> "$GITHUB_STEP_SUMMARY"
