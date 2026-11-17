@@ -1,6 +1,6 @@
 # Historical Investment Calculator
 
-See what a past investment would be worth. Enter an amount, choose one-time, monthly, or yearly investing, and pick start and end dates. The calculator compares five low-cost funds side by side, plus a custom mix of them with optional yearly rebalancing. It shows each fund's best and worst year in your time range and can show every result in today's dollars. A "Will my money last?" section tests a withdrawal plan, like taking 4% a year from $1,000,000, against every real stretch of history and 10,000 simulated futures built from real 12-month periods:
+See what a past investment would be worth. Enter an amount, choose one-time, monthly, or yearly investing, and pick start and end dates. The calculator compares five low-cost funds side by side, plus a custom mix of them with optional yearly rebalancing. It shows each fund's best and worst year in your time range and can show every result in today's dollars. A "Will my money last?" section tests a withdrawal plan, like taking 4% a year from $1,000,000, or works out how much you need to save for a given monthly withdrawal, against every real stretch of history and 10,000 simulated futures built from real 12-month periods:
 
 | Asset | Modeled as | Yearly fee | Data starts |
 |---|---|---|---|
