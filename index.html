@@ -376,7 +376,7 @@ fieldset.mix legend { font-weight: 600; font-size: .9rem; padding: 0 .35rem; }
       <li>Your mix splits every deposit across the funds by your percentages. With yearly rebalancing, the whole account is reset to those percentages every 12 months from your start month. Without it, each fund grows on its own and the mix drifts.</li>
       <li>Inflation adjustment uses the Consumer Price Index (CPI-U) from Robert Shiller's dataset and the Bureau of Labor Statistics. "Today's dollars" means <span id="cpi-month"></span> dollars, the latest inflation data. The October 2025 figure was never published because of the government shutdown, so it is estimated. "Per year" figures in today's dollars are returns after inflation.</li>
       <li>For monthly or yearly investing, each deposit buys in on the start month and every month or year after it, through the end date. "Per year" is the money-weighted annual return, which accounts for when each deposit went in. Results include the fund fees above but ignore taxes.</li>
-      <li>"Will my money last?" takes 1/12 of the yearly withdrawal at the start of each month, then applies that month's returns, with fund fees included. "Actual history" replays every 30-year (or your chosen length) stretch that starts in a month the data covers; these stretches overlap heavily, so they hold only a few truly separate periods. "Simulated futures" are 10,000 paths built by stitching together randomly chosen real 12-month stretches, which keeps patterns within each year (like stocks and bonds moving together or apart) but mixes up the order of years. Both use only the months every fund in the mix has data for, so a mix with bitcoin draws on 2011 onward only. With inflation-adjusted withdrawals, all amounts are in today's dollars; without, ending balances are in future dollars. Taxes are ignored. Real returns may be lower than this mostly strong century for US markets, which is what the "Future returns" setting is for.</li>
+      <li>"Will my money last?" takes 1/12 of the yearly withdrawal at the start of each month, then applies that month's returns, with fund fees included. "Actual history" replays every 30-year (or your chosen length) stretch that starts in a month the data covers; these stretches overlap heavily, so they hold only a few truly separate periods. "Simulated futures" are 10,000 paths built by stitching together randomly chosen real 12-month stretches, which keeps patterns within each year (like stocks and bonds moving together or apart) but mixes up the order of years. Both use only the months every fund in the mix has data for, so a mix with bitcoin draws on 2011 onward only, and a plan can't be longer than the data it draws on. With inflation-adjusted withdrawals, all amounts are in today's dollars; without, ending balances are in future dollars. Taxes are ignored. Real returns may be lower than this mostly strong century for US markets, which is what the "Future returns" setting is for.</li>
       <li>This is a historical illustration, not investment advice. Past returns don't predict future ones.</li>
     </ul>
   </section>
@@ -751,16 +751,23 @@ function wdUpdate() {
   else if (!(yearly > 0)) msg = "Enter a yearly withdrawal greater than zero, like 40,000.";
   else if (!(Number.isInteger(years) && years >= 1 && years <= 60)) msg = "Enter a whole number of years from 1 to 60.";
   else if (!mixOk) msg = "Your mix for this plan adds up to " + (isFinite(sum) ? sum : 0) + "%. Change it so it totals 100%.";
+  const keys = msg ? [] : ASSETS.map(a => a.key).filter(k => w[k] > 0);
+  const R = msg ? null : wdReturns(keys, real, haircut);
+  const dataYears = R ? Math.floor(R.M / 12) : 0;
+  if (!msg && years > dataYears) {
+    const limiting = ASSETS.filter(a => w[a.key] > 0).reduce((a, b) => series[b.key].s > series[a.key].s ? b : a);
+    const firstMonth = label(MONTHS_YM(R.start));
+    msg = keys.length > 1 && series[limiting.key].s === R.start
+      ? `Your mix includes ${limiting.short}, which has data only from ${firstMonth}, about ${dataYears} years. Choose ${dataYears} years or fewer, or take ${limiting.short} out of the mix.`
+      : `This mix has data only from ${firstMonth}, about ${dataYears} years. Choose ${dataYears} years or fewer.`;
+  }
   const err = $("wd-error");
   $("wd-results").hidden = !!msg;
   if (msg) { err.textContent = msg; err.hidden = false; return; }
   err.hidden = true;
 
-  const keys = ASSETS.map(a => a.key).filter(k => w[k] > 0);
-  const R = wdReturns(keys, real, haircut);
   const months = years * 12, perMonth = yearly / 12;
   const dataLabel = `${label(MONTHS_YM(R.start))} through ${label(MONTHS_YM(R.start + R.M))}`;
-  const dataYears = Math.floor(R.M / 12);
 
   // Simulated futures: random real 12-month stretches, stitched together.
   const rand = mulberry32(20261117), blocks = new Int32Array(Math.ceil(months / 12));
@@ -782,7 +789,7 @@ function wdUpdate() {
   const dollars = real ? "today's dollars" : "future dollars, not adjusted for inflation";
 
   let s = `Taking ${usd.format(yearly)} a year${real ? ", raised with inflation," : ""} from ${usd.format(balance)} in ${mixTxt}: `;
-  s += `in ${WD_SIMS.toLocaleString("en-US")} simulated ${years}-year futures, your money lasted in ${pctTxt(1 - S.failRate)} and ran out in ${pctTxt(S.failRate)}.`;
+  s += `in ${WD_SIMS.toLocaleString("en-US")} simulated ${years}-year futures, your money lasted in ${pctTxt(1 - Math.round(S.failRate * 1000) / 1000)} and ran out in ${pctTxt(S.failRate)}.`;
   if (S.medianFailYears != null) s += ` When it ran out, it was typically after about ${yrsTxt(S.medianFailYears)}.`;
   if (H) {
     s += ` Across the ${H.n.toLocaleString("en-US")} actual ${years}-year periods in the data, it ran out in ${pctTxt(H.failRate)}`;
@@ -804,8 +811,7 @@ function wdUpdate() {
 
   let note = `Built from monthly returns from ${dataLabel}`;
   note += haircut ? `, lowered by ${haircut * 100} percentage point${haircut === 0.01 ? "" : "s"} a year.` : ".";
-  if (!H) note += ` That's only about ${dataYears} years of data, shorter than your ${years}-year plan, so there are no actual ${years}-year periods to replay, and every simulated future reuses that same short stretch. Treat these results with extra caution.`;
-  else if (H.n < 120) note += ` That leaves only ${H.n} actual ${years}-year periods, and they overlap heavily, so the actual history column rests on very little data.`;
+  if (H.n < 120) note += ` That leaves only ${H.n} actual ${years}-year periods, and they overlap heavily, so the actual history column rests on very little data.`;
   $("wd-note").textContent = note;
 }
 
