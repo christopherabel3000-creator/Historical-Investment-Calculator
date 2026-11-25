@@ -1,0 +1,31 @@
+# Checks the version is ready (build, review notes with the recording link, screenshots) and submits it
+# for App Store review (tools/appstore_submit.py). Run from the Actions tab, or ask Claude.
+name: Submit for App Store review
+
+on:
+  workflow_dispatch:
+    inputs:
+      expect_link:
+        description: "Recording link that must be in the review notes"
+        required: false
+        default: ""
+      check_only:
+        description: "Only check, don't submit"
+        type: boolean
+        default: true
+
+jobs:
+  submit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check and submit
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+          EXPECT_LINK: ${{ inputs.expect_link }}
+          CHECK_ONLY: ${{ inputs.check_only }}
+        run: |
+          pip install --quiet pyjwt cryptography requests
+          python3 tools/appstore_submit.py

@@ -95,12 +95,7 @@ Answer None or No to everything. It's a calculator with no user-generated conten
 
 ## Accessibility (App Store accessibility labels)
 
-Mark as supported on iPhone and iPad:
-
-- VoiceOver: yes
-- Dark Interface: yes (follows the system's dark mode)
-
-Check before marking: Larger Text, Sufficient Contrast, Differentiate Without Color Alone, Voice Control, Reduced Motion.
+For iPhone and iPad: VoiceOver only, the same as Christopher's other apps.
 
 ## Notes for the reviewer
 

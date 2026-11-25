@@ -1,0 +1,27 @@
+# Fills in the App Store listing from appstore/listing.md through the App Store Connect API
+# (tools/appstore_metadata.py). Run it from the Actions tab, or ask Claude. Optional input: the
+# reviewer's screen recording link, which goes into the review notes.
+name: App Store listing
+
+on:
+  workflow_dispatch:
+    inputs:
+      recording_link:
+        description: "Screen recording link for the reviewer (optional)"
+        required: false
+        default: ""
+
+jobs:
+  listing:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fill in the listing
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+          RECORDING_LINK: ${{ inputs.recording_link }}
+        run: |
+          pip install --quiet pyjwt cryptography requests
+          python3 tools/appstore_metadata.py
