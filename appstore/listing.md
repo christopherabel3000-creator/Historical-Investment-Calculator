@@ -104,7 +104,7 @@ Apple asks every new app for six things in this field: a screen recording made o
 What If I'd Invested is an educational calculator that shows how past investments would have grown, built to be fully usable with VoiceOver by a developer who uses a screen reader. The build was tested on a physical iPhone through TestFlight before submission.
 
 1. SCREEN RECORDING
-Recorded on a physical iPhone running the latest iOS, starting from launching the app: RECORDING LINK
+Recorded on a physical iPhone running the latest iOS, starting from launching the app: RECORDING_LINK
 The voice heard in the recording is VoiceOver, since the developer uses a screen reader.
 The app has no account registration or login, no user-generated content, and no paid content or purchases. So those flows don't exist to show.
 
